@@ -67,10 +67,6 @@ int main(int argc, char **argv) {
     std::shared_ptr<Camera> camera = initCamera(argc, argv);
     ROS_ASSERT_MSG(camera, "initCamera call failed");
 
-
-    setFrameType(camera, "pcm");
-    startCamera(camera);
-
     ros::init(argc, argv, "aditof_camera_node");
     dynamic_reconfigure::Server<aditof_roscpp::Aditof_roscppConfig> server;
     dynamic_reconfigure::Server<
@@ -78,6 +74,7 @@ int main(int argc, char **argv) {
 
     //create publishers
     ros::NodeHandle nHandle("aditof_roscpp");
+
     ros::Publisher ir_img_pubisher =
         nHandle.advertise<sensor_msgs::Image>("aditof_ir", 5);
     ROS_ASSERT_MSG(ir_img_pubisher, "creating ir_img_pubisher failed");
@@ -109,21 +106,16 @@ int main(int argc, char **argv) {
     /*ros::Publisher depth_img_pubisher =
         nHandle.advertise<sensor_msgs::Image>("aditof_depth", 5);
     ROS_ASSERT_MSG(depth_img_pubisher, "creating depth_img_pubisher failed");
-*/
+
     ros::Publisher ir_img_pubisher =
         nHandle.advertise<sensor_msgs::Image>("aditof_ir", 5);
     ROS_ASSERT_MSG(ir_img_pubisher, "creating ir_img_pubisher failed");
-/*
+
     ros::Publisher camera_info_pubisher =
         nHandle.advertise<sensor_msgs::CameraInfo>("aditof_camera_info", 5);
     ROS_ASSERT_MSG(camera_info_pubisher,
                    "creating camera_info_pubisher failed");
 */
-    Frame frame;
-    getNewFrame(camera, &frame);
-
-    //create messages
-    ros::Time timeStamp = ros::Time::now();
     
     /*AditofSensorMsg *pcl_msg = MessageFactory::create(
         camera, &frame, MessageType::sensor_msgs_PointCloud2, timeStamp);
@@ -138,14 +130,6 @@ int main(int argc, char **argv) {
     DepthImageMsg *depthImgMsg = dynamic_cast<DepthImageMsg *>(depth_img_msg);
     ROS_ASSERT_MSG(depthImgMsg,
                    "downcast from AditofSensorMsg to DepthImageMsg failed");
-*/
-    AditofSensorMsg *ir_img_msg = MessageFactory::create(
-        camera, &frame, MessageType::sensor_msgs_IRImage, timeStamp);
-    ROS_ASSERT_MSG(ir_img_msg, "ir_image message creation failed");
-    IRImageMsg *irImgMsg = dynamic_cast<IRImageMsg *>(ir_img_msg);
-    ROS_ASSERT_MSG(irImgMsg,
-                   "downcast from AditofSensorMsg to IRImageMsg failed");
-
 
     AditofSensorMsg *camera_info_msg = MessageFactory::create(
         camera, &frame, MessageType::sensor_msgs_CameraInfo, timeStamp);
@@ -181,6 +165,6 @@ int main(int argc, char **argv) {
     //delete depth_img_msg;
     delete ir_img_msg;
     delete camera_info_msg;
-    
+    */
     return 0;
 }
