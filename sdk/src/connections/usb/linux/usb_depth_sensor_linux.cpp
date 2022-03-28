@@ -247,6 +247,55 @@ UsbDepthSensor::setFrameType(const aditof::DepthSensorFrameType &type) {
         return status;
     }
 
+    //We have two resolution domains. First is driver one which is defined in adsd3100_sensor.h
+    //The second is the depthcompute input domain defined in mode_info.cpp
+    //The total number of pixels between these two should be equal
+    //Here compute the number of frames that should be requested to the driver based on the required number of pixels from g_modeInfoData[]
+
+    /*if (type.type != m_implData->frameType.type) {
+        for (unsigned int i = 0; i < m_implData->buffersCount; i++) {
+            if (munmap(m_implData->videoBuffers[i].start,
+                       m_implData->videoBuffers[i].length) == -1) {
+                LOG(WARNING)
+                    << "munmap error "
+                    << "errno: " << errno << " error: " << strerror(errno);
+                return Status::GENERIC_ERROR;
+            }
+        }
+        free(m_implData->videoBuffers);
+        m_implData->buffersCount = 0;
+        CLEAR(req);
+        req.count = 0;
+        req.type =  V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        req.memory = V4L2_MEMORY_MMAP;
+
+        if (xioctl(m_implData->fd, VIDIOC_REQBUFS, &req) == -1) {
+            LOG(WARNING) << "VIDIOC_REQBUFS error "
+                         << "errno: " << errno << " error: " << strerror(errno);
+            return Status::GENERIC_ERROR;
+        }
+    } else if (m_implData->nVideoBuffers) {
+        return status;
+    }*/
+
+    struct v4l2_requestbuffers req;
+    CLEAR(req);
+    req.count = 0;
+    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    req.memory = V4L2_MEMORY_MMAP;
+
+    if (-1 == UsbLinuxUtils::xioctl(m_implData->fd, VIDIOC_REQBUFS, &req)) {
+        if (EINVAL == errno) {
+            LOG(WARNING) << m_driverPath << " does not support memmory mapping";
+        } else {
+            LOG(WARNING) << "VIDIOC_REQBUFS, error:" << errno << "("
+                         << strerror(errno) << ")";
+        }
+        return Status::GENERIC_ERROR;
+    }
+
+
+
     // Buggy driver paranoia.
     unsigned int min;
 
@@ -267,7 +316,8 @@ UsbDepthSensor::setFrameType(const aditof::DepthSensorFrameType &type) {
         return Status::GENERIC_ERROR;
     }
 
-    struct v4l2_requestbuffers req;
+    LOG(INFO) << "VIDIOC_S_FMT code: " << VIDIOC_S_FMT;
+
 
     CLEAR(req);
     req.count = 4;

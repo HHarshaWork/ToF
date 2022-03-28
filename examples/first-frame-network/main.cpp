@@ -35,7 +35,61 @@
 #include <glog/logging.h>
 #include <iostream>
 
+#include <fstream>
+#include <ios>
+
 using namespace aditof;
+
+
+Status save_frame(aditof::Frame& frame, std::string frameType){
+	
+    uint16_t *data1;
+    FrameDataDetails fDetails;
+    Status status = Status::OK;
+    
+    status = frame.getData(frameType, &data1);
+    if (status != Status::OK) {
+        LOG(ERROR) << "Could not get frame data " + frameType + "!";
+        return status;
+    }
+
+    if (!data1) {
+        LOG(ERROR) << "no memory allocated in frame";
+        return status;
+    }
+
+    std::ofstream g("out_" + frameType + "_" + fDetails.type + ".bin", std::ios::binary);
+    frame.getDataDetails(frameType, fDetails);
+    g.write((char*)data1, fDetails.width * fDetails.height * sizeof(uint16_t));
+    g.close();
+
+    return status;
+}
+
+Status save_frame2(aditof::Frame& frame, std::string frameType){
+	
+    uint16_t *data1;
+    FrameDataDetails fDetails;
+    Status status = Status::OK;
+    
+    status = frame.getData(frameType, &data1);
+    if (status != Status::OK) {
+        LOG(ERROR) << "Could not get frame data " + frameType + "!";
+        return status;
+    }
+
+    if (!data1) {
+        LOG(ERROR) << "no memory allocated in frame";
+        return status;
+    }
+
+    std::ofstream g("out_" + frameType + "_" + fDetails.type + "2.bin", std::ios::binary);
+    frame.getDataDetails(frameType, fDetails);
+    g.write((char*)data1, fDetails.width * fDetails.height * sizeof(uint16_t));
+    g.close();
+
+    return status;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -67,13 +121,27 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    std::vector<std::string> frameTypes;
-    camera->getAvailableFrameTypes(frameTypes);
-    if (frameTypes.empty()) {
-        std::cout << "no frame type available!";
+    // load configuration data from module memory
+    status = camera->setControl("loadModuleData", "call");
+    if (status != Status::OK) {
+        LOG(INFO) << "No CCB/CFG data found in camera module,";
         return 0;
     }
-    status = camera->setFrameType("pcm");
+
+    status = camera->setControl("initialization_config", "/home/robi/Workspace_ToF/config/config_crosby_nxp.json");
+    if (status != Status::OK) { 
+        LOG(ERROR) << "Could not set the initialization config file!";
+        return 0;
+    }
+
+
+    status = camera->setControl("enableDepthCompute", "on");
+    if (status != Status::OK) {
+        LOG(ERROR) << "Couldn't set depth compute option";
+        return 0;
+    }
+
+    status = camera->setFrameType("qmp");
     if (status != Status::OK) {
         LOG(ERROR) << "Could not set camera frame type!";
         return 0;
@@ -94,24 +162,49 @@ int main(int argc, char *argv[]) {
         LOG(INFO) << "succesfully requested frame!";
     }
 
-    uint16_t *data1;
-    status = frame.getData("ir", &data1);
+    save_frame(frame, "ir");
+    save_frame(frame, "depth");
 
+    
+    // swiitch mode
+    LOG(INFO)<<"#####################\nCHANGIN MODE\n";
+    status = camera->stop();
+    
+
+   // status = camera->initialize();
     if (status != Status::OK) {
-        LOG(ERROR) << "Could not get frame data!";
+        LOG(ERROR) << "Could not initialize camera!";
         return 0;
     }
 
-    if (!data1) {
-        LOG(ERROR) << "no memory allocated in frame";
+    //status = camera->setControl("enableDepthCompute", "on");
+    if (status != Status::OK) {
+        LOG(ERROR) << "Couldn't set depth compute option";
         return 0;
     }
 
-    FrameDataDetails fDetails;
-    frame.getDataDetails("ir", fDetails);
-    for (unsigned int i = 0; i < fDetails.width * fDetails.height; ++i) {
-        std::cout << data1[i] << " ";
+    status = camera->setFrameType("mp");
+    if (status != Status::OK) {
+        LOG(ERROR) << "Could not set camera frame type!";
+        return 0;
     }
 
-    return 0;
+    status = camera->start();
+    if (status != Status::OK) {
+        LOG(ERROR) << "Could not start the camera!";
+        return 0;
+    }
+    aditof::Frame frame2;
+
+
+    status = camera->requestFrame(&frame2);
+    if (status != Status::OK) {
+        LOG(ERROR) << "Could not request frame!";
+        return 0;
+    } else {
+        LOG(INFO) << "succesfully requested frame!";
+    }
+
+    save_frame2(frame2, "ir");
+    save_frame2(frame2, "depth");
 }
