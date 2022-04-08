@@ -467,7 +467,8 @@ aditof::Status UsbDepthSensor::open() {
         (m_implData->handle.pAmMediaType->subtype == MEDIASUBTYPE_Y16)) {
         mt.subtype = m_implData->handle.pAmMediaType->subtype;
     } else
-        mt.subtype = MEDIASUBTYPE_RGB24; // Making it RGB24, does conversion
+        mt.subtype = m_implData->handle.pAmMediaType
+                         ->subtype; // Making it RGB24, does conversion
                                          // from YUV to RGB Included conditional
                                          // based format for Y16 - end
 
@@ -495,7 +496,7 @@ aditof::Status UsbDepthSensor::open() {
     // RENDER STREAM//
     // This is where the stream gets put together.
     hr = m_implData->handle.pCaptureGraph->RenderStream(
-        &PIN_CATEGORY_PREVIEW, &MEDIATYPE_Video,
+        &PIN_CATEGORY_PREVIEW, &mt.majortype,
         m_implData->handle.pVideoInputFilter, m_implData->handle.pGrabberF,
         m_implData->handle.pDestFilter);
 
@@ -597,16 +598,47 @@ UsbDepthSensor::setFrameType(const aditof::DepthSensorFrameType &type) {
         LOG(ERROR) << "Set frame type operation failed on UVC gadget";
         return status;
     }
-    VIDEOINFOHEADER *pVih = reinterpret_cast<VIDEOINFOHEADER *>(
-        m_implData->handle.pAmMediaType->pbFormat);
-    HEADER(pVih)->biWidth = type.width;
-    HEADER(pVih)->biHeight = type.height;
-    hr = m_implData->handle.streamConf->SetFormat(
-        m_implData->handle.pAmMediaType);
-    if (FAILED(hr)) {
-        LOG(WARNING) << "Could not set requested resolution (Frame Index)\n";
-        return Status::GENERIC_ERROR;
+
+#if 1
+    int iCount, iSize;
+    BYTE *pSCC = NULL;
+    AM_MEDIA_TYPE *pmt;
+    hr =
+        m_implData->handle.streamConf->GetNumberOfCapabilities(&iCount, &iSize);
+    pSCC = new BYTE[iSize];
+    if (pSCC == NULL) {
+        // TODO: Out of memory error.
     }
+    // Get the first format.
+
+    hr = m_implData->handle.streamConf->GetStreamCaps(16, &pmt, pSCC);
+    if (hr == S_OK) {
+        // TODO: Examine the format. If it's not suitable for some
+        // reason, call GetStreamCaps with the next index value (up
+        // to iCount). Otherwise, set the format:
+
+        VIDEOINFOHEADER *pVih = reinterpret_cast<VIDEOINFOHEADER *>(pmt->pbFormat);
+       // HEADER(pVih)->biWidth = 2560;
+       // HEADER(pVih)->biHeight = 512;
+        hr = m_implData->handle.pGrabber->SetMediaType(pmt);
+        if (FAILED(hr)) {
+            LOG(WARNING)
+                << "Could not set requested mediatype (Frame Index)\n";
+            return Status::GENERIC_ERROR;
+        }
+       
+
+        hr = m_implData->handle.streamConf->SetFormat(pmt);
+        if (FAILED(hr)) { 
+            LOG(WARNING)
+                << "Could not set requested resolution (Frame Index)\n";
+            return Status::GENERIC_ERROR;
+        }
+        memcpy(m_implData->handle.pAmMediaType, pmt, sizeof(AM_MEDIA_TYPE));
+
+    }
+    delete[] pSCC;
+#endif
     return status;
 }
 
