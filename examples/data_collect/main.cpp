@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
     if (args["--ft"]) {
         frame_type = args["--ft"].asString();
     } else {
-        frame_type = "raw";
+        frame_type = "depth";
     }
     if (frame_type.length() <= 0) {
         LOG(ERROR) << "Error parsing frame_type (--ft) from command line!";
@@ -444,7 +444,7 @@ int main(int argc, char *argv[]) {
     }
 
     // optionally load configuration data from module memory
-    status = camera->setControl("loadModuleData", "call");
+    //status = camera->setControl("loadModuleData", "call");
     if (status != Status::OK) {
         LOG(INFO) << "No CCB/CFG data found in camera module,";
         LOG(INFO) << "Loading calibration(ccb) and configuration(cfg) data from JSON config file...";
@@ -468,21 +468,21 @@ int main(int argc, char *argv[]) {
         camera->setControl("enableDepthCompute", "off");
         Fsfparams.raw_frames = true;
     } else if ("depth" == frame_type) {
-        if (frameTypes[modeIndexMap[mode]] == "pcm") {
-            LOG(ERROR) << frameTypes[modeIndexMap[mode]] << " mode doesn't contain depth data, please set --ft (frameType) to raw.";
-            return 0;
-        }
-        else {
+        //if (frameTypes[modeIndexMap[mode]] == "pcm") {
+        //    LOG(ERROR) << frameTypes[modeIndexMap[mode]] << " mode doesn't contain depth data, please set --ft (frameType) to raw.";
+        //    return 0;
+        //}
+        //else {
             camera->setControl("enableDepthCompute", "on");
             Fsfparams.raw_frames = false;
-        }        
+        //}        
     }
     else {
         LOG(ERROR) << "unsupported frame type!";
         return 0;      
     }
 
-    status = camera->setFrameType(frameTypes[modeIndexMap[mode]]);
+    status = camera->setFrameType("qmp");
     if (status != Status::OK) {
         LOG(ERROR) << "Could not set camera frame type!";
         return 0;
