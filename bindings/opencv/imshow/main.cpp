@@ -69,13 +69,14 @@ int main(int argc, char *argv[]) {
     }
 
     std::vector<std::shared_ptr<Camera>> cameras;
-    system.getCameraList(cameras);
+    system.getCameraListAtIp(cameras,"10.76.84.235");
     if (cameras.empty()) {
         LOG(WARNING) << "No cameras found!";
         return 0;
     }
 
     auto camera = cameras.front();
+    status = camera->setControl("initialization_config", "config/config_walden_3500_nxp.json");
     status = camera->initialize();
     if (status != Status::OK) {
         LOG(ERROR) << "Could not initialize camera!";
@@ -84,7 +85,7 @@ int main(int argc, char *argv[]) {
 
     //TO DO: Add call for initialization config in order to use this example
 
-    status = camera->setControl("loadModuleData", "call");
+    //status = camera->setControl("loadModuleData", "call");
     if (status != Status::OK) {
         LOG(INFO) << "No CCB/CFG data found in camera module,";
         return 0;
@@ -123,6 +124,7 @@ int main(int argc, char *argv[]) {
     //static_cast<int>(frameDepthDetails.width);
 
     cv::namedWindow("Display Image", cv::WINDOW_AUTOSIZE);
+    cv::namedWindow("Display Image2", cv::WINDOW_AUTOSIZE);
 
     while (cv::waitKey(1) != 27 &&
            getWindowProperty("Display Image", cv::WND_PROP_AUTOSIZE) >= 0) {
@@ -141,6 +143,12 @@ int main(int argc, char *argv[]) {
             LOG(ERROR) << "Could not convert from frame to mat!";
             return 0;
         }
+        cv::Mat mat2;
+        status = fromFrameToIrMat(frame, mat2);
+        if (status != Status::OK) {
+            LOG(ERROR) << "Could not convert from frame to mat!";
+            return 0;
+        }
         
         //Read the center point distance value
         cv::Point2d pointxy(frameHeight / 2, frameWidth / 2);
@@ -148,6 +156,7 @@ int main(int argc, char *argv[]) {
 
         /* Convert from raw values to values that opencv can understand */
         mat.convertTo(mat, CV_8U,0.2,5);
+        mat2.convertTo(mat2, CV_8U);
 
         /* Apply a rainbow color map to the mat to better visualize the
          * depth data */
@@ -173,6 +182,7 @@ int main(int argc, char *argv[]) {
         }
         /* Display the image */
         imshow("Display Image", mat);
+        imshow("Display Image2", mat2);
     }
 
     return 0;
