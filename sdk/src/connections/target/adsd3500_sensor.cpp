@@ -394,6 +394,7 @@ Adsd3500Sensor::setFrameType(const aditof::DepthSensorFrameType &type) {
     struct v4l2_buffer buf;
     size_t length, offset;
     size_t pix_fallout, pix_drv;
+    std::vector<uint32_t> valid_pix_fmts{V4L2_PIX_FMT_SBGGR8, V4L2_PIX_FMT_SBGGR12, V4L2_PIX_FMT_SBGGR16};
 
     status = setMode(type.type);
     if (status != aditof::Status::OK) {
@@ -438,9 +439,19 @@ Adsd3500Sensor::setFrameType(const aditof::DepthSensorFrameType &type) {
         /* Set the frame format in the driver */
         CLEAR(fmt);
         fmt.type = dev->videoBuffersType;
-        fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
         fmt.fmt.pix.width = type.width;
         fmt.fmt.pix.height = type.height;
+
+        for (int i = 0; i < valid_pix_fmts.size(); i++) {
+            fmt.fmt.pix.pixelformat = valid_pix_fmts[i];
+            if (xioctl(dev->fd, VIDIOC_TRY_FMT, &fmt) == 0)
+                break;
+            
+            if (i == valid_pix_fmts.size() - 1) {
+                LOG(WARNING) << "None of the known formats was accepted by the driver";
+                return Status::GENERIC_ERROR;
+            }
+        }
 
         if (xioctl(dev->fd, VIDIOC_S_FMT, &fmt) == -1) {
             LOG(WARNING) << "Setting Pixel Format error, errno: " << errno
