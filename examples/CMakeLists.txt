@@ -5,6 +5,7 @@ add_subdirectory(first-frame)
 add_subdirectory(data_collect)
 if (NOT NXP)
     add_subdirectory(tof-viewer)
+    add_subdirectory(people-detect-without-pcl)
 endif()
 
 if (WITH_NETWORK)
