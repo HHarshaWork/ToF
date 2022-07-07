@@ -28,7 +28,7 @@ endif()
 set(ADIToF_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Application)
 #set(LIB_DIR ${PROJECT_SOURCE_DIR}/Dependencies)
 
-add_executable(PeopleDetectApplication 
+add_executable(${PROJECT_NAME} 
                 ${ADIToF_SOURCE_DIR}/src/PeopleDetectionApplication.cpp
                 ${ADIToF_SOURCE_DIR}/src/FileIO.cpp
                 ${ADIToF_SOURCE_DIR}/src/ParseArgs.cpp
@@ -37,15 +37,22 @@ add_executable(PeopleDetectApplication
                 )
 
 # Link Libraries
-find_package(glog REQUIRED)
+# find_package(glog REQUIRED)
 # add_library(glog SHARED IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/Dependencies/glog)
 # add_library(opencv SHARED IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/Dependencies/opencv)
 
-target_link_libraries(PeopleDetectApplication ${PROJECT_SOURCE_DIR}/Dependencies/glog/lib/glog.lib)
-target_link_libraries(PeopleDetectApplication ${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_core453.lib)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Dependencies/glog/lib/Debug/glog.lib)
+target_link_libraries(${PROJECT_NAME} 
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_core453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_imgproc453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_highgui453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_imgcodecs453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_video453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_videoio453.lib"
+	)
 
 #Add include paths
-target_include_directories(PeopleDetectApplication PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
 						"${PROJECT_BINARY_DIR}"
 						"${PROJECT_SOURCE_DIR}/include"
                         "${PROJECT_SOURCE_DIR}/include/PeopleDetector"
@@ -56,7 +63,7 @@ target_include_directories(PeopleDetectApplication PUBLIC
 						"${PROJECT_SOURCE_DIR}/include"
 				)
 
-target_include_directories(PeopleDetectApplication PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
                         "${CMAKE_SOURCE_DIR}/sdk/include")
                         
                         
@@ -74,7 +81,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # if(WIN32)
 	# # copy sdk lib to exe directory
 	# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-					# #COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_LINKER_FILE_DIR:aditof> ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>
+					# COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_LINKER_FILE_DIR:aditof> ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>
 					# VERBATIM
 					# COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/../../sdk/src/cameras/itof-camera/config $<TARGET_FILE_DIR:${PROJECT_NAME}>/../${CONFIG_DIR_NAME}/.
 					# )
