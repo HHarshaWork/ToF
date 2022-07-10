@@ -2,6 +2,8 @@ build/
 libs/
 
 sdk/include/aditof/version.h
+examples/people-detect-without-pcl/Lib/
+examples/people-detect-without-pcl/Dependencies/
 
 *deps/
 *.temp/

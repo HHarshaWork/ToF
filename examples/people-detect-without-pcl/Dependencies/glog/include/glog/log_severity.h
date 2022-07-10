@@ -48,10 +48,10 @@ const int GLOG_INFO = 0, GLOG_WARNING = 1, GLOG_ERROR = 2, GLOG_FATAL = 3,
   NUM_SEVERITIES = 4;
 #ifndef GLOG_NO_ABBREVIATED_SEVERITIES
 # ifdef ERROR
-//#  error ERROR macro is defined. Define GLOG_NO_ABBREVIATED_SEVERITIES before including logging.h. See the document for detail.
+#  error ERROR macro is defined. Define GLOG_NO_ABBREVIATED_SEVERITIES before including logging.h. See the document for detail.
 # endif
 const int INFO = GLOG_INFO, WARNING = GLOG_WARNING,
-  ERROR1 = GLOG_ERROR, FATAL = GLOG_FATAL;
+  ERROR = GLOG_ERROR, FATAL = GLOG_FATAL;
 #endif
 
 // DFATAL is FATAL in debug mode, ERROR in normal mode

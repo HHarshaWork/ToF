@@ -41,7 +41,10 @@ add_executable(${PROJECT_NAME}
 # add_library(glog SHARED IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/Dependencies/glog)
 # add_library(opencv SHARED IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/Dependencies/opencv)
 
-target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Dependencies/glog/lib/Debug/glog.lib)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Dependencies/glog/lib/glog.lib)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Lib/ObjectDetector/ObjectDetector.lib)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Lib/PeopleDetector/PeopleDetection.lib)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Lib/aditof.lib)
 target_link_libraries(${PROJECT_NAME} 
 						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_core453.lib"
 						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_imgproc453.lib"

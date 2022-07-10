@@ -172,7 +172,7 @@
 #define STL_NAMESPACE std
 
 /* location of source code */
-#define TEST_SRC_DIR "C:/work/TOF-dependencies/glog"
+#define TEST_SRC_DIR "C:/My_projects/New folder/glog"
 
 /* Version number of package */
 /* #undef VERSION */

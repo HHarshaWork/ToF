@@ -84,7 +84,7 @@ FILE_IO_STATUS FileIO::OpenInputFile(char *pInFileName, int nMode)
 
 	if (strcmp(pInFileName, "camera") == 0)
 	{
-		FLAGS_alsologtostderr = 1;
+		//FLAGS_alsologtostderr = 1;
 
 		//realtime mode
 		Status status = Status::OK;
