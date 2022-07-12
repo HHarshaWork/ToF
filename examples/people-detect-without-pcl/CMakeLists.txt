@@ -28,6 +28,11 @@ endif()
 set(ADIToF_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Application)
 #set(LIB_DIR ${PROJECT_SOURCE_DIR}/Dependencies)
 
+# add_custom_command(
+    # OUTPUT "${MY_EXTRACTED_FILE}"
+    # COMMAND unzip
+    # DEPENDS "${MY_DOWNLOAD_PATH}")
+
 add_executable(${PROJECT_NAME} 
                 ${ADIToF_SOURCE_DIR}/src/PeopleDetectionApplication.cpp
                 ${ADIToF_SOURCE_DIR}/src/FileIO.cpp
@@ -78,6 +83,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Copying necessary dlls from SDK and the necessary config files
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBTOFI_LIBDIR_PATH} $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/aditof.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/ObjectDetector/ObjectDetector.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/PeopleDetector/PeopleDetection.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.	
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_core453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_imgproc453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_highgui453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_imgcodecs453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_video453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_videoio453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/../../sdk/src/cameras/itof-camera/config $<TARGET_FILE_DIR:${PROJECT_NAME}>/${CONFIG_DIR_NAME}/.
     )
 
