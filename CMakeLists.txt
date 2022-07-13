@@ -61,18 +61,45 @@ add_definitions(-DADITOFSDK_GIT_BRANCH="${ADITOFSDK_GIT_BRANCH}")
 
 ############################## Rest of cmake ##################################
 
-set(MY_URL "https://github.com/opencv/opencv/releases/download/4.5.3/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip")
-set(MY_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip")
-set(MY_EXTRACTED_FILE "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/opencv-test")
+################Setting up opencv and tensorflow for example code --- Need to move this out of main CMakeLists to examples folder's########################
+set(OPENCV_URL "https://github.com/opencv/opencv/releases/download/4.5.3/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip")
+set(OPENCV_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip")
+set(OPENCV_EXTRACTED_FILE "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/opencv-test/")
 
-if (NOT EXISTS "${MY_DOWNLOAD_PATH}")
-    file(DOWNLOAD "${MY_URL}" "${MY_DOWNLOAD_PATH}")
+set(TF_URL "https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.15.0.zip")
+set(TF_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/libtensorflow-cpu-windows-x86_64-1.15.0.zip")
+set(TF_EXTRACTED_FILE "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/tensorflow/")
+
+if (NOT EXISTS "${OPENCV_DOWNLOAD_PATH}")
+    MESSAGE( STATUS "Downloading OpenCV")
+	file(DOWNLOAD "${OPENCV_URL}" "${OPENCV_DOWNLOAD_PATH}")
+	
 endif()
 
-add_custom_command(
-    OUTPUT "${MY_EXTRACTED_FILE}"
-    COMMAND unzip
-    DEPENDS "${MY_DOWNLOAD_PATH}")
+if (NOT EXISTS "${TF_DOWNLOAD_PATH}")
+    MESSAGE( STATUS "Downloading Tensorflow")
+	file(DOWNLOAD "${TF_URL}" "${TF_DOWNLOAD_PATH}")
+	
+endif()
+
+if (NOT EXISTS "${TF_EXTRACTED_FILE}")
+	MESSAGE( STATUS "Unzipping Tensorflow")
+	#file(MAKE_DIRECTORY ${TF_EXTRACTED_FILE})
+	file(ARCHIVE_EXTRACT INPUT ${TF_DOWNLOAD_PATH} DESTINATION ${TF_EXTRACTED_FILE})
+	# execute_process(
+		# COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/libtensorflow-cpu-windows-x86_64-1.15.0.zip ${TF_EXTRACTED_FILE}
+	# )
+endif()
+
+if (NOT EXISTS "${OPENCV_EXTRACTED_FILE}")
+	MESSAGE( STATUS "Unzipping OpenCV")
+	#file(MAKE_DIRECTORY ${OPENCV_EXTRACTED_FILE})
+	file(ARCHIVE_EXTRACT INPUT ${OPENCV_DOWNLOAD_PATH} DESTINATION ${OPENCV_EXTRACTED_FILE})
+	# execute_process(
+		# COMMAND ${CMAKE_COMMAND} -E tar xv ${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip ${OPENCV_EXTRACTED_FILE}
+	# )
+endif()
+################Setting up opencv and tensorflow for example code########################
 	
 if (WITH_NETWORK)
         add_definitions(-DHAS_NETWORK)
