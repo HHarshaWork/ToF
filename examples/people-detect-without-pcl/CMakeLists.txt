@@ -49,14 +49,14 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/glog/build_0_3_5/local_path/glog/lib/glog.lib)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Lib/ObjectDetector/ObjectDetector.lib)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Lib/PeopleDetector/PeopleDetection.lib)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Lib/aditof.lib)
+target_link_libraries(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../../build/sdk/Release/aditof.lib)
 target_link_libraries(${PROJECT_NAME} 
-						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_core453.lib"
-						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_imgproc453.lib"
-						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_highgui453.lib"
-						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_imgcodecs453.lib"
-						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_video453.lib"
-						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/lib/opencv_videoio453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/lib/opencv_core453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/lib/opencv_imgproc453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/lib/opencv_highgui453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/lib/opencv_imgcodecs453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/lib/opencv_video453.lib"
+						"${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/lib/opencv_videoio453.lib"
 	)
 
 #Add include paths
@@ -67,7 +67,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                         "${PROJECT_SOURCE_DIR}/include/ObjectDetector"
                         "${ADIToF_SOURCE_DIR}/include"
 						"${PROJECT_SOURCE_DIR}/Dependencies/glog/include"
-                        "${PROJECT_SOURCE_DIR}/Dependencies/opencv/include"
+                        "${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/include"
 						"${PROJECT_SOURCE_DIR}/include"
 				)
 
@@ -83,15 +83,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Copying necessary dlls from SDK and the necessary config files
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBTOFI_LIBDIR_PATH} $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
-	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/aditof.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../../build/sdk/Release/aditof.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
 	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/ObjectDetector/ObjectDetector.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
 	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/PeopleDetector/PeopleDetection.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.	
-	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_core453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
-	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_imgproc453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
-	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_highgui453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
-	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_imgcodecs453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
-	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_video453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
-	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/bin/opencv_videoio453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/bin/opencv_core453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/bin/opencv_imgproc453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/bin/opencv_highgui453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/bin/opencv_imgcodecs453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/bin/opencv_video453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/bin/opencv_videoio453.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Dependencies/tensorflow/lib/tensorflow.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/../../sdk/src/cameras/itof-camera/config $<TARGET_FILE_DIR:${PROJECT_NAME}>/${CONFIG_DIR_NAME}/.
     )
 
