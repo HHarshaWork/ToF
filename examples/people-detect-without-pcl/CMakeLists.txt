@@ -66,7 +66,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                         "${PROJECT_SOURCE_DIR}/include/PeopleDetector"
                         "${PROJECT_SOURCE_DIR}/include/ObjectDetector"
                         "${ADIToF_SOURCE_DIR}/include"
-						"${PROJECT_SOURCE_DIR}/Dependencies/glog/include"
+						"${CMAKE_CURRENT_SOURCE_DIR}/../../deps/glog/build_0_3_5/local_path/glog/include"
                         "${PROJECT_SOURCE_DIR}/Dependencies/opencv/opencv/build/include"
 						"${PROJECT_SOURCE_DIR}/include"
 				)
