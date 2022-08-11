@@ -34,6 +34,7 @@
 
 #include "tofi/tofi_compute.h"
 #include "tofi/tofi_config.h"
+#include "tofi/tofi_util.h"
 #include <aditof/camera.h>
 #include <aditof/depth_sensor_interface.h>
 #include <aditof/storage_interface.h>
@@ -41,7 +42,6 @@
 #include <map>
 #include <unordered_map>
 // #include "aditof_internal.h"
-// #include "tofi_utils.h"
 #include "mode_info.h"
 #include "module_memory.h"
 
@@ -94,6 +94,11 @@
  *                    or disabled through .ini configuration file but if this control is explicitly called
  *                    then it will override the option in the .ini file. By default XYZ frame is disabled.
  *   Accepted values: One of the following strings: 'on' or 'off'
+ *
+ * updateAdsd3500Firmware
+ *   Description:     Update the firmware of Adsd3500 with the content found in the specified file.
+ *   Accepted values: A path to a file (including file name and extension) where the firmware for
+ *                    adsd3500 is stored.
  */
 
 class CameraItof : public aditof::Camera {
@@ -101,7 +106,10 @@ class CameraItof : public aditof::Camera {
     CameraItof(std::shared_ptr<aditof::DepthSensorInterface> depthSensor,
                std::vector<std::shared_ptr<aditof::StorageInterface>> &eeproms,
                std::vector<std::shared_ptr<aditof::TemperatureSensorInterface>>
-                   &tSensors);
+                   &tSensors,
+               const std::string &ubootVersion,
+               const std::string &kernelVersion,
+               const std::string &sdCardImageVersion);
     ~CameraItof();
 
   public: // implements Camera
@@ -263,8 +271,8 @@ class CameraItof : public aditof::Camera {
     /**
      * @brief Read camera module memory and initialize camera with loaded data.
      *
-     * Must be called after initialize() and powerUp(). Calibration or Firmware
-     * data are NOT loaded if already defined by initialize() config file.
+     * Called inside initialize() function. Calibration or Firmware
+     * data are NOT loaded if already defined in json config file.
      *
      * @return Status
      * @see Status
@@ -314,6 +322,48 @@ class CameraItof : public aditof::Camera {
      */
     aditof::Status enableXYZframe(bool en);
 
+    // Methods available only when Adsd3500 is detected as part of the entire setup
+
+    /**
+     * @brief Update the adsd3500 with the firmware in the specified file.
+     *
+     * @param[in] filePath - Path to file where the Adsd3500 firmware should be stored
+     *
+     * @return Status
+     * @see Status
+     */
+    aditof::Status updateAdsd3500Firmware(const std::string &filePath);
+
+    /**
+     * @brief Read the ccb from adsd3500 memory and store it in m_tempFiles.ccbFile
+     *
+     * @return Status
+     * @see Status
+     */
+    aditof::Status readAdsd3500CCB();
+
+    /**
+     * INI files have key value pairs like this:
+     * enableSomething = 1
+     * someThresholdValue = 200.5
+     * The content of the INI files is expected to be stored the variable given as parameter.
+     * @param[in] iniContent - the content of an INI file
+     * @param[in] key - the key to be search and get its value
+     * @return the value of the key
+    */
+    std::string iniFileContentFindKeyAndGetValue(std::ifstream &iniContent,
+                                                 const std::string &key);
+
+    /**
+     * Configure the sensor with various settings that affect the frame type.
+     */
+    void configureSensorFrameType();
+
+    /**
+     * Reads the content of json file and populates the parameters
+     */
+    aditof::Status parseJsonFileContent();
+
   private:
     using noArgCallable = std::function<aditof::Status()>;
 
@@ -327,27 +377,34 @@ class CameraItof : public aditof::Camera {
     bool m_devStarted;
     bool m_eepromInitialized;
     bool m_tempSensorInitialized;
+    bool m_adsd3500Enabled;
 
-    uint8_t *m_calData = NULL;
-    uint8_t *m_depthINIData = NULL;
+    FileData m_calData;
+    FileData m_depthINIData;
+    std::map<std::string, FileData> m_depthINIDataMap;
     uint8_t *m_jconfigData = NULL;
     TofiConfig *m_tofi_config = NULL;
     TofiComputeContext *m_tofi_compute_context = NULL;
-    int m_calFileSize;
+    TofiXYZDealiasData m_xyz_dealias_data[MAX_N_MODES + 1];
     int m_jsonFileSize;
-    int m_iniFileSize;
     bool m_loadedConfigData;
 
     bool m_CameraProgrammed = false;
     std::string m_sensorFirmwareFile;
     std::string m_ccb_calibrationFile;
     std::string m_ini_depth;
+    std::map<std::string, std::string> m_ini_depth_map;
+    bool m_abEnabled;
     bool m_xyzEnabled;
     bool m_xyzSetViaControl;
     uint16_t m_modechange_framedrop_count = 0;
     aditof::TOF_ModuleFiles_t m_tempFiles;
     std::vector<aditof::DepthSensorFrameType> m_availableSensorFrameTypes;
     std::vector<std::pair<std::string, int32_t>> m_sensor_settings;
+    int m_cameraFps;
+
+    //pair between firmware version and git hash
+    std::pair<std::string, std::string> m_adsd3500FwGitHash;
 };
 
 #endif // CAMERA_ITOF_H

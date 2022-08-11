@@ -5,6 +5,7 @@
 
 ### Pre-requisites
 * CMake
+* OpenGL
 * Glog v0.3.5
 * Libwebsockets v3.1
 * Protocol Buffers v3.9.0
@@ -13,6 +14,11 @@
 * CMake:
 ```console
 sudo apt install cmake
+```
+
+* OpenGL:
+```console
+sudo apt install libgl1-mesa-dev libglfw3-dev
 ```
 
 * Glog:
@@ -48,7 +54,7 @@ sudo cmake --build . --target install
 git clone https://github.com/analogdevicesinc/ToF
 cd ToF
 mkdir build && cd build
-cmake -DUSE_ITOF=1 -DWITH_EXAMPLES=off -DCMAKE_PREFIX_PATH="/opt/glog;/opt/protobuf;/opt/websockets" ..
+cmake -DWITH_EXAMPLES=off -DCMAKE_PREFIX_PATH="/opt/glog;/opt/protobuf;/opt/websockets" ..
 make
 ```
 
@@ -68,7 +74,7 @@ sudo apt install libopencv-dev
 ```console
 cd ToF
 mkdir build && cd build
-cmake -DUSE_ITOF=1 -DWITH_EXAMPLES=on -DCMAKE_PREFIX_PATH="/opt/glog;/opt/protobuf;/opt/websockets" ..
+cmake -DWITH_EXAMPLES=on -DCMAKE_PREFIX_PATH="/opt/glog;/opt/protobuf;/opt/websockets" ..
 make
 ```
 

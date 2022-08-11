@@ -7,3 +7,4 @@ examples/people-detect-without-pcl/Dependencies/
 
 *deps/
 *.temp/
+.vscode/

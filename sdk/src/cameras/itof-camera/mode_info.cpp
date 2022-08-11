@@ -5,14 +5,13 @@
 /*                                                                              */
 /********************************************************************************/
 #include "mode_info.h"
-#include <iostream>
 #include <algorithm>
+#include <iostream>
 
 // TODO: load this information from camera module EEPROM
 ModeInfo::modeInfo ModeInfo::g_modeInfoData[] = {
     {1, 320, 288, 9, 2162, 288, 0},
     {3, 1024, 1024, 1, 12289, 64, 1},
-    {5, 1024, 1024, 10, 12289, 640, 1},
     {7, 512, 512, 10, 2195, 896, 1},
     {10, 1024, 1024, 9, 12289, 576, 0},
 };
@@ -42,14 +41,12 @@ unsigned int ModeInfo::getNumModes() {
            sizeof(ModeInfo::g_modeInfoData[0]);
 }
 
-
-aditof::Status convertCameraMode(const std::string &mode, uint8_t& convertedMode) {
+aditof::Status convertCameraMode(const std::string &mode,
+                                 uint8_t &convertedMode) {
     if (mode == "lt_bin") {
         convertedMode = 1;
     } else if (mode == "pcm") {
         convertedMode = 3;
-    } else if (mode == "mp_pcm") {
-        convertedMode = 5;
     } else if (mode == "qmp") {
         convertedMode = 7;
     } else if (mode == "mp") {
@@ -61,10 +58,10 @@ aditof::Status convertCameraMode(const std::string &mode, uint8_t& convertedMode
     return aditof::Status::OK;
 }
 
-ModeInfo::modeInfo ModeInfo::getModeInfo(const std::string& mode){
+ModeInfo::modeInfo ModeInfo::getModeInfo(const std::string &mode) {
     unsigned char modeIndex;
 
     convertCameraMode(mode, modeIndex);
-    
+
     return getModeInfo(modeIndex);
 }

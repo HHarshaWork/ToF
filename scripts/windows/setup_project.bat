@@ -143,24 +143,24 @@ echo Setup will continue with the configuration: %config_type%
 
 ::check if the generator is correct
 set /a opt=0
-set vs=15
+set opencv_vs=15
 if %generator%=="Visual Studio 16 2019" (
     set /a opt=1
-    set vs=15
+    set opencv_vs=15
 )
 if %generator%=="Visual Studio 15 2017 Win64" (
     set /a opt=1
-    set vs=15
+    set opencv_vs=15
 )
 if %generator%=="Visual Studio 14 2015 Win64" (
     set /a opt=1
-    set vs=14
+    set opencv_vs=14
 )
 
 if %set_generator%==0 (
    set /a opt=1
-   set generator="Visual Studio 15 2017 Win64"
-   set vs=15
+   set generator="Visual Studio 16 2019"
+   set opencv_vs=16
    )
 if %opt%==0 (
     echo Please enter a correct configuration ("Visual Studio 16 2019"; "Visual Studio 15 2017 Win64" or "Visual Studio 14 2015 Win64"^)
@@ -205,7 +205,7 @@ CALL :install_websockets %config_type% %generator%
 
 ::build the project with the selected options
 pushd %build_dire%
-cmake -G %generator% -DWITH_PYTHON=off -DCMAKE_PREFIX_PATH="%deps_install_dir%\glog;%deps_install_dir%\protobuf;%deps_install_dir%\libwebsockets" %source_dir%
+cmake -G %generator% -DWITH_PYTHON=on -DCMAKE_PREFIX_PATH="%deps_install_dir%\glog;%deps_install_dir%\protobuf;%deps_install_dir%\libwebsockets" %source_dir%
 cmake --build . --config %config_type%
 popd
 EXIT /B %ERRORLEVEL%

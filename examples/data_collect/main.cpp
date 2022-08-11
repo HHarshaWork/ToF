@@ -6,9 +6,11 @@
 /********************************************************************************/
 
 #include <aditof/camera.h>
+#include <aditof/depth_sensor_interface.h>
 #include <aditof/floatTolin.h>
 #include <aditof/frame.h>
 #include <aditof/system.h>
+#include <aditof/version.h>
 #include <docopt.h>
 #include <fsf_common.h>
 #include <fstream>
@@ -67,7 +69,7 @@ static const char kUsagePublic[] =
     R"(Data Collect.
     Usage:
       data_collect FILE
-      data_collect [--f <folder>] [--n <ncapture>] [--m <mode>] [--ext_fsync <0|1>] [--fsf <0|1>] [--wt <warmup>] [--ccb FILE] FILE
+      data_collect [--f <folder>] [--n <ncapture>] [--m <mode>] [--ext_fsync <0|1>] [--fsf <0|1>] [--wt <warmup>] [--ccb FILE] [--ip <ip>] [--fw <firmware>] FILE
       data_collect (-h | --help) 
 
     Arguments:
@@ -75,19 +77,24 @@ static const char kUsagePublic[] =
 
     Options:
       -h --help          Show this screen.
-      --f <folder>       Input folder to save data to. Max folder name size is 512. [default: ./]
-      --n <ncapture>     Number of frames to capture. [default: 1]
+      --f <folder>       Output folder (max name 512) [default: ./]
+      --n <ncapture>     Capture frame num. [default: 1]
       --m <mode>         Mode to capture data in. [default: 10]
       --ext_fsync <0|1>  External FSYNC [0: Internal 1: External] [default: 0]
       --fsf <0|1>        FSF file type [0: Disable 1: Enable] [default: 0]
-      --wt <warmup>      Warmup Time (in seconds) before data capture [default: 0]
+      --wt <warmup>      Warmup Time (sec) [default: 0]
       --ccb <FILE>       The path to store CCB content
+      --ip <ip>          Camera IP  
+      --fw <firmware>    Adsd3500 fw file
 
     Valid mode (--m) options are:
-        0: QMpixel short range (512x512)
         1: QVGA LT (320x288)
         3: Passive IR (1024x1024)
         5: 1Mpixel with passive IR (1024x1024)
+        7: QMpixel (512x512)
+       10: 1Mpixel (1024x1024)
+
+    Valid mode (--m) options for adsd3500: 
         7: QMpixel (512x512)
        10: 1Mpixel (1024x1024)
 )";
@@ -96,7 +103,7 @@ static const char kUsageInternal[] =
     R"(Data Collect.
     Usage:
       data_collect FILE
-      data_collect [--f <folder>] [--n <ncapture>] [--m <mode>] [--ext_fsync <0|1>] [--ft <frame_type>] [--fsf <0|1>] [--wt <warmup>] [--ccb FILE] [--ip <ip>] [--fps <setfps>] FILE
+      data_collect [--f <folder>] [--n <ncapture>] [--m <mode>] [--ext_fsync <0|1>] [--ft <frame_type>] [--fsf <0|1>] [--wt <warmup>] [--ccb FILE] [--ip <ip>] [--fw <firmware>] [--fps <setfps>] FILE
       data_collect (-h | --help) 
 
     Arguments:
@@ -112,7 +119,8 @@ static const char kUsageInternal[] =
       --fsf <0|1>        FSF file type [0: Disable 1: Enable] [default: 0]
       --wt <warmup>      Warmup Time (in seconds) before data capture [default: 0]
       --ccb <FILE>       The path to store CCB content      
-      --ip <ip>          Camera IP      
+      --ip <ip>          Camera IP
+      --fw <firmware>    Adsd3500 fw file      
       --fps <setfps>     Set target FPS value [range: 50 to 200] 
 )";
 
@@ -236,19 +244,23 @@ int main(int argc, char *argv[]) {
     uint16_t err = 0;
     uint32_t n_frames = 0;
     uint32_t mode = 0;
-    uint32_t fps_counter = 0;
     uint32_t ext_frame_sync_en = 0;
     uint32_t warmup_time = 0;
     std::string ip;
+    std::string firmware;
     uint32_t setfps = 0;
     uint16_t fps_defaults[11] = {200, 105, 100, 200, 50, 50, 50, 105, 105, 50, 50};    
 
     google::InitGoogleLogging(argv[0]);
     FLAGS_alsologtostderr = 1;
 
+    LOG(INFO) << "SDK version: " << aditof::getApiVersion()
+              << " | branch: " << aditof::getBranchVersion()
+              << " | commit: " << aditof::getCommitVersion();
+
     Status status = Status::OK;
 
-    std::map<int, int> modeIndexMap = {{1, 0}, {3, 1}, {5, 2}, {7, 3}, {10, 4}};
+    std::map<int, std::string> modeIndexMap = {{1, "lt_bin"}, {3, "pcm"}, {5, "mp_pcm"}, {7, "qmp"}, {10, "mp"}};
 
     std::map<std::string, docopt::value> args = docopt::docopt_private(kUsagePublic, kUsageInternal, {argv + 1, argv + argc}, true);
 
@@ -306,7 +318,7 @@ int main(int argc, char *argv[]) {
         mode = args["--m"].asLong();
         modeIsValid = (mode == 1 || mode == 3 || mode == 5 || mode == 7 || mode == 10);
         if (!modeIsValid) {
-            LOG(ERROR) << "Invalid Mode.." << mode << "The accepted values for mode are: 1, 3, 5, 7, 10";
+            LOG(ERROR) << "Invalid Mode: " << mode << " The accepted values for mode are: 1, 3, 5, 7, 10";
             return 0;
         }
     }
@@ -318,7 +330,16 @@ int main(int argc, char *argv[]) {
             LOG(ERROR) << "Invalid ip (--ip) from command line!";
             return 0;
         }
-    }    
+    }
+
+    // Parsing firmware
+    if (args["--fw"]) {
+        firmware = args["--fw"].asString();
+        if (firmware.empty()) {
+            LOG(ERROR) << "Invalid firmware (--fw) from command line!";
+            return 0;
+        }
+    }        
 
     //set FPS value
     if (args["--fps"]) {
@@ -380,6 +401,10 @@ int main(int argc, char *argv[]) {
         LOG(INFO) << "Ip address is: " << ip;
     }
 
+    if (!firmware.empty()) {
+        LOG(INFO) << "Firmware file is is: " << firmware;
+    }
+
     if (!ccbFilePath.empty()) {
         LOG(INFO) << "Path to store CCB content: " << ccbFilePath;
     }   
@@ -407,23 +432,34 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    status = camera->initialize();    
+    status = camera->initialize();
     if (status != Status::OK) {
         LOG(ERROR) << "Could not initialize camera!";
         return 0;
+    }
+
+    aditof::CameraDetails cameraDetails;
+	camera->getDetails(cameraDetails);
+
+	LOG(INFO) << "SD card image version: " << cameraDetails.sdCardImageVersion;
+	LOG(INFO) << "Kernel version: " << cameraDetails.kernelVersion;
+	LOG(INFO) << "U-Boot version: " << cameraDetails.uBootVersion;
+
+    if(!firmware.empty()){
+        status = camera->setControl("updateAdsd3500Firmware", firmware);
+        if(status != Status::OK){
+            LOG(ERROR) << "Could not update the adsd3500 firmware";
+            return 0;
+        } else {
+            LOG(INFO) << "Please reboot the board!";
+            return 0;
+        }
     }
 
     status = camera->setControl("powerUp", "call");
     if (status != Status::OK) {
         LOG(ERROR) << "Could not PowerUp camera!";
         return 0;
-    }
-
-    // optionally load configuration data from module memory
-    status = camera->setControl("loadModuleData", "call");
-    if (status != Status::OK) {
-        LOG(INFO) << "No CCB/CFG data found in camera module,";
-        LOG(INFO) << "Loading calibration(ccb) and configuration(cfg) data from JSON config file...";
     }
 
     // Get frame types
@@ -434,18 +470,30 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    modeIsValid = false;
+    std::string tempFrameTypesList = "";
+    for (auto frame_type : frameTypes){
+        if(modeIndexMap[mode] == frame_type){
+            modeIsValid = true;
+        }
+    }
+
     if (!modeIsValid) {
-        LOG(ERROR) << "Camera mode: " << mode << "is incorrect. The accepted values for mode are: 1, 3, 5, 7, 10";
+        LOG(ERROR) << "Mode: " << mode << " is invalid for this type of camera!";
         return 0;
     }  
+
+    std::shared_ptr<DepthSensorInterface> depthSensor = camera->getSensor();
+    std::string sensorName;
+    status = depthSensor->getName(sensorName);
 
     // Set UVC format type and camera frame details
     if ("raw" == frame_type) {
         camera->setControl("enableDepthCompute", "off");
         Fsfparams.raw_frames = true;
     } else if ("depth" == frame_type) {
-        if (frameTypes[modeIndexMap[mode]] == "pcm") {
-            LOG(ERROR) << frameTypes[modeIndexMap[mode]] << " mode doesn't contain depth data, please set --ft (frameType) to raw.";
+        if (modeIndexMap[mode] == "pcm") {
+            LOG(ERROR) << modeIndexMap[mode] << " mode doesn't contain depth data, please set --ft (frameType) to raw.";
             return 0;
         }
         else {
@@ -458,7 +506,7 @@ int main(int argc, char *argv[]) {
         return 0;      
     }
 
-    status = camera->setFrameType(frameTypes[modeIndexMap[mode]]);
+    status = camera->setFrameType(modeIndexMap[mode]);
     if (status != Status::OK) {
         LOG(ERROR) << "Could not set camera frame type!";
         return 0;
@@ -538,6 +586,14 @@ int main(int argc, char *argv[]) {
     }
 #endif    
 
+    // Store CCB to file
+    if (!ccbFilePath.empty()) {
+        status = camera->setControl("saveModuleCCB", ccbFilePath);
+        if (status != Status::OK) {
+            LOG(INFO) << "Failed to store CCB to " << ccbFilePath;
+        }
+    }
+
     // Program the camera with cfg passed, set the mode by writing to 0x200 and start the camera        
     status = camera->start();
     if (status != Status::OK) {
@@ -560,7 +616,7 @@ int main(int argc, char *argv[]) {
     uint8_t  *headerBuffer;
     uint32_t height;
     uint32_t width;
-    uint32_t subFrames;
+    uint32_t subFrames = 0;
     uint64_t frame_size = 0;
     uint64_t elapsed_time;
 
@@ -598,13 +654,31 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
-        frame.getDetails(fDetails);
 
+        
+        frame.getDetails(fDetails);
+        
         height = fDetails.height;
         width = fDetails.width;
-        std::string attrVal;
-        frame.getAttribute("total_captures", attrVal);
-        subFrames = std::stoi(attrVal);
+
+        // We have both 8bit and 16bit pixels, compute the size in 8bit
+        if (sensorName == "adsd3500") {
+            if (mode == 7) {
+                //one 16bit depth, one 16bit ab, one 8bit confidence
+                // =>> 5 * 8 bit subframes
+                subFrames = 5;
+            } else if (mode == 10) {
+                // 4 x 16 bit subframes =>> 8 x 8 bit subframes
+                subFrames = 8;
+            }
+        } else {
+            std::string attrVal;
+            frame.getAttribute("total_captures", attrVal);
+            subFrames = std::stoi(attrVal);
+            //here it was 16 bit. changed to 8 bit
+            subFrames = subFrames * 2;
+        }
+
         frameType = "raw";
 
         // Depth Data
@@ -612,7 +686,7 @@ int main(int argc, char *argv[]) {
             frame_size = sizeof(uint16_t) * height * width;
             frameType = "depth";
         } else if (frame_type == "raw") {
-            frame_size = sizeof(uint16_t) * height * width * subFrames;
+            frame_size = height * width * subFrames;
             frameType = "frameData"; // TO DO: change this to "raw" when it gets done
         } else {
             LOG(WARNING) << "Can't recognize frame data type!";
@@ -725,14 +799,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Store CCB to file
-    if (!ccbFilePath.empty()) {
-        status = camera->setControl("saveModuleCCB", ccbFilePath);
-        if (status != Status::OK) {
-            LOG(INFO) << "Failed to store CCB to " << ccbFilePath;
-        }
-    }
-
     fsf_stop(&Fsfparams);
     status = camera->stop();
     if (status != Status::OK) {
@@ -749,7 +815,7 @@ void fileWriterTask( const thread_params * const pThreadParams ) {
 
     char out_file[MAX_FILE_PATH_SIZE] = {0};
     if (nullptr == pThreadParams->pFsfParams) {
-        snprintf(out_file, sizeof(out_file), "%s/%s_frame_%s_%05lld.bin", pThreadParams->pFolderPath, pThreadParams->pFrame_type, pThreadParams->nFileTime,
+        snprintf(out_file, sizeof(out_file), "%s/%s_frame_%s_%05" PRIu64 ".bin", pThreadParams->pFolderPath, pThreadParams->pFrame_type, pThreadParams->nFileTime,
              pThreadParams->nFrameCount);
 
         std::ofstream rawFile(out_file, std::ios::out | std::ios::binary | std::ofstream::trunc );

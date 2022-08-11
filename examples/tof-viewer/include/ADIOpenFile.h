@@ -4,11 +4,12 @@
 /* This software is proprietary to Analog Devices, Inc. and its licensors.      */
 /*                                                                              */
 /********************************************************************************/
-#include <string>
-#include <vector>
-
 #ifndef ADI_OPEN_FILE
 #define ADI_OPEN_FILE
+
+#include <iostream>
+#include <string>
+#include <vector>
 
 extern std::string customFilter;
 extern std::vector<std::string> customFilters;
@@ -20,7 +21,8 @@ extern std::vector<std::string> customFilters;
 * @param owner         Platform specific, typically NULL
 * @return              Selected file name with its extension
 */
-std::string openADIFileName(const char* filter = customFilter.c_str(), void *owner = NULL);
+std::string openADIFileName(const char *filter = customFilter.c_str(),
+                            void *owner = NULL);
 
 /**
 * @brief Opens a dialog box to save a file
@@ -29,7 +31,7 @@ std::string openADIFileName(const char* filter = customFilter.c_str(), void *own
 * @param FilterIndex   Index of chosen filter
 * @return              Saved name if successful, empty string otherwise
 */
-std::string getADIFileName(void *hwndOwner, char* filename,  int & FilterIndex);
+std::string getADIFileName(void *hwndOwner, char *filename, int &FilterIndex);
 
 /**
 * @brief Finds a set of files with specified file extension
@@ -39,6 +41,8 @@ std::string getADIFileName(void *hwndOwner, char* filename,  int & FilterIndex);
 * @param returnFullPath If true: returnFileName is returned with both
                         path and file name, otherwise just the file name
 */
-void getFilesList(std::string filePath, std::string extension, std::vector<std::string>& returnFileName, bool returnFullPath);
+void getFilesList(std::string filePath, std::string extension,
+                  std::vector<std::string> &returnFileName,
+                  bool returnFullPath);
 
 #endif //ADI_OPEN_FILE

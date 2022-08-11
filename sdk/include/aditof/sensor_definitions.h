@@ -34,9 +34,9 @@
 
 #include "aditof/connections.h"
 
+#include <iostream>
 #include <string>
 #include <vector>
-#include <iostream>
 
 /**
  * @brief Namespace aditof
@@ -82,7 +82,7 @@ struct DepthSensorFrameContent {
 };
 
 /**
- * @struct DepthSensorFrameFormat
+ * @struct DepthSensorFrameType
  * @brief Describes the type of entire frame that a depth sensor can capture and transmit
  */
 struct DepthSensorFrameType {
@@ -105,25 +105,29 @@ struct DepthSensorFrameType {
      * @brief The height of the entire frame that the sensor can capture
      */
     unsigned int height;
-
-
 };
-inline std::ostream& operator << (std::ostream& o, const DepthSensorFrameContent& a)
-{
-    o << "T: " << a.type << "\tW: " << a.width << "\tH: "<< a.height << "\n";
+
+/**
+ * @brief prints human readable frame content details
+ */
+inline std::ostream &operator<<(std::ostream &o,
+                                const DepthSensorFrameContent &a) {
+    o << "T: " << a.type << "\tW: " << a.width << "\tH: " << a.height << "\n";
     return o;
 }
 
-inline std::ostream& operator << (std::ostream& o, const DepthSensorFrameType& a)
-{
-    o << "DepthSensorFrame: T: " << a.type << "\tW: " << a.width << "\tH: "<< a.height << " contains:\n";
-        for (const DepthSensorFrameContent content : a.content){
-            o << "\t" <<content;
-        }
+/**
+ * @brief prints human readable frame details
+ */
+inline std::ostream &operator<<(std::ostream &o,
+                                const DepthSensorFrameType &a) {
+    o << "DepthSensorFrame: T: " << a.type << "\tW: " << a.width
+      << "\tH: " << a.height << " contains:\n";
+    for (const DepthSensorFrameContent content : a.content) {
+        o << "\t" << content;
+    }
     return o;
 }
 } // namespace aditof
-
-
 
 #endif // SENSOR_DEFINITIONS_H

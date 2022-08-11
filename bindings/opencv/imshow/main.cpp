@@ -45,22 +45,35 @@
 
 using namespace aditof;
 
+bool m_centerPointEnabled = false; //Enable to display center point and distance at point
+bool m_logoEnabled = false; //Enable to display logo
+
 int main(int argc, char *argv[]) {
     google::InitGoogleLogging(argv[0]);
     FLAGS_alsologtostderr = 1;
 
     Status status = Status::OK;
 
-    System system;
-
-    cv::Mat logo = cv::imread("config/logo.png"); 
-    if (logo.empty()) {
-        LOG(ERROR) << "Could not open or find the logo";
+    if (argc < 2) {
+        LOG(ERROR) << "No config file provided! ./aditof-opencv-imshow <config_file>";
         return 0;
     }
 
-    //Change the logo to a format that opencv can use
-    logo.convertTo(logo, CV_8U,255.0);
+    std::string configFile = argv[1];    
+
+    System system;
+
+    cv::Mat logo;
+    if(m_logoEnabled){
+        logo = cv::imread("config/logo.png"); 
+        if (logo.empty()) {
+            LOG(ERROR) << "Could not open or find the logo";
+            return 0;
+        }
+    
+        //Change the logo to a format that opencv can use
+        logo.convertTo(logo, CV_8U,255.0);
+    }
 
     std::vector<std::shared_ptr<Camera>> cameras;
     system.getCameraList(cameras);
@@ -70,15 +83,16 @@ int main(int argc, char *argv[]) {
     }
 
     auto camera = cameras.front();
-    status = camera->initialize();
-    if (status != Status::OK) {
-        LOG(ERROR) << "Could not initialize camera!";
+
+    status = camera->setControl("initialization_config", configFile);
+    if(status != Status::OK){
+        LOG(ERROR) << "Failed to set control!";
         return 0;
     }
 
-    status = camera->setControl("loadModuleData", "call");
+    status = camera->initialize();
     if (status != Status::OK) {
-        LOG(INFO) << "No CCB/CFG data found in camera module,";
+        LOG(ERROR) << "Could not initialize camera!";
         return 0;
     }
 
@@ -89,7 +103,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    status = camera->setFrameType("mp_pcm");
+    status = camera->setFrameType("qmp");
     if (status != Status::OK) {
         LOG(ERROR) << "Could not set camera frame type!";
         return 0;
@@ -104,6 +118,15 @@ int main(int argc, char *argv[]) {
     aditof::CameraDetails cameraDetails;
     camera->getDetails(cameraDetails);
     aditof::Frame frame;
+
+    aditof::FrameDataDetails frameDepthDetails;
+    frame.getDataDetails("depth", frameDepthDetails);
+
+    //TO DO: hardcoded for now (adsd3500 qmp usecase)
+    const int frameHeight = 512;
+    //static_cast<int>(frameDepthDetails.height);
+    const int frameWidth = 512;
+    //static_cast<int>(frameDepthDetails.width);
 
     cv::namedWindow("Display Image", cv::WINDOW_AUTOSIZE);
 
@@ -124,9 +147,9 @@ int main(int argc, char *argv[]) {
             LOG(ERROR) << "Could not convert from frame to mat!";
             return 0;
         }
-
+        
         //Read the center point distance value
-        cv::Point2d pointxy(512, 512);
+        cv::Point2d pointxy(frameHeight / 2, frameWidth / 2);
         int m_distanceVal = static_cast<int>(mat.at<ushort>(pointxy));
 
         /* Convert from raw values to values that opencv can understand */
@@ -139,17 +162,21 @@ int main(int argc, char *argv[]) {
         //Draw the center point
         char text[20];
         sprintf(text, "%dmm", m_distanceVal);
-        cv::drawMarker(mat, pointxy, cv::Scalar(255, 255, 255),
-                       cv::MARKER_CROSS);
-        cv::circle(mat, pointxy, 8, cv::Scalar(255, 255, 255));
-        cv::putText(mat, text, pointxy + cv::Point2d(10, 20),
-                    cv::FONT_HERSHEY_DUPLEX, 3,
-                    cv::Scalar(255, 255, 255),4);
-        
-        cv::Mat insertLogo(mat, cv::Rect(50, 900,200,79));
-        cv::addWeighted(insertLogo, 0.85 , logo,
-                        1.0F - 0.85, 0, insertLogo);
 
+        if(m_centerPointEnabled){
+            cv::drawMarker(mat, pointxy, cv::Scalar(255, 255, 255),
+                           cv::MARKER_CROSS);
+            cv::circle(mat, pointxy, 8, cv::Scalar(255, 255, 255));
+            cv::putText(mat, text, pointxy + cv::Point2d(10, 20),
+                        cv::FONT_HERSHEY_DUPLEX, 3,
+                        cv::Scalar(255, 255, 255),4);
+        }
+        
+        if(m_logoEnabled){
+            cv::Mat insertLogo(mat, cv::Rect(50, 900,200,79));
+            cv::addWeighted(insertLogo, 0.85 , logo,
+                        1.0F - 0.85, 0, insertLogo);
+        }
         /* Display the image */
         imshow("Display Image", mat);
     }

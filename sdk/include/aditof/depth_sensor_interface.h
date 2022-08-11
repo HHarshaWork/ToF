@@ -37,6 +37,7 @@
 #include <aditof/status_definitions.h>
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 namespace aditof {
@@ -116,7 +117,8 @@ class DepthSensorInterface {
      * @return Status
      */
     virtual aditof::Status readRegisters(const uint16_t *address,
-                                            uint16_t *data, size_t length, bool burst = true) = 0;
+                                         uint16_t *data, size_t length,
+                                         bool burst = true) = 0;
 
     /**
      * @brief Write to multiple AFE registers.
@@ -129,8 +131,94 @@ class DepthSensorInterface {
      * @return Status
      */
     virtual aditof::Status writeRegisters(const uint16_t *address,
-                                             const uint16_t *data,
-                                             size_t length, bool burst = true) = 0;
+                                          const uint16_t *data, size_t length,
+                                          bool burst = true) = 0;
+
+    /**
+     * @brief Send a read command to adsd3500.
+     * @param cmd - the command to be sent
+     * @param[out] data - the variable where the read data will be stored
+     * @return Status
+     */
+    virtual aditof::Status adsd3500_read_cmd(uint16_t cmd, uint16_t *data) = 0;
+
+    /**
+     * @brief Send a write command to adsd3500.
+     * @param cmd - the command to be sent
+     * @param data - the data to be written
+     * @return Status
+     */
+    virtual aditof::Status adsd3500_write_cmd(uint16_t cmd, uint16_t data) = 0;
+
+    /**
+     * @brief Send a read command to adsd3500. This will perform a burst read making it
+     *        useful for reading chunks of data.
+     * @param cmd - the command to be sent
+     * @param[out] readback_data - the location where the read data chunk will be stored
+     * @param payload_len - the number of bytes to read
+     * @return Status
+     */
+    virtual aditof::Status adsd3500_read_payload_cmd(uint32_t cmd,
+                                                     uint8_t *readback_data,
+                                                     uint16_t payload_len) = 0;
+
+    /**
+     * @brief Reads a chunk of data from adsd3500. This will perform a burst read making it
+     *        useful for reading chunks of data.
+     * @param payload - the location from where to take the data chunk and read it
+     * @param payload_len - the number of bytes to read
+     * @return Status
+     */
+    virtual aditof::Status adsd3500_read_payload(uint8_t *payload,
+                                                 uint16_t payload_len) = 0;
+
+    /**
+     * @brief Send a write command to adsd3500. This will perform a burst write making it
+     *        useful for writing chunks of data.
+     * @param cmd - the command to be sent
+     * @param payload - the location from where to take the data chunk and write it
+     * @param payload_len - the number of bytes to write
+     * @return Status
+     */
+    virtual aditof::Status adsd3500_write_payload_cmd(uint32_t cmd,
+                                                      uint8_t *payload,
+                                                      uint16_t payload_len) = 0;
+
+    /**
+     * @brief Send a chunk of data (payload) to adsd3500. This will perform a burst write making it
+     *        useful for writing chunks of data.
+     * @param payload - the location from where to take the data chunk and write it
+     * @param payload_len - the number of bytes to write
+     * @return Status
+     */
+    virtual aditof::Status adsd3500_write_payload(uint8_t *payload,
+                                                  uint16_t payload_len) = 0;
+
+    /**
+     * @brief Gets the sensors's list of controls
+     * @param[out] controls
+     * @return Status
+     */
+    virtual Status
+    getAvailableControls(std::vector<std::string> &controls) const = 0;
+
+    /**
+     * @brief Sets a specific sensor control
+     * @param[in] control - Control name
+     * @param[in] value - Control value
+     * @return Status
+     */
+    virtual Status setControl(const std::string &control,
+                              const std::string &value) = 0;
+
+    /**
+     * @brief Gets the value of a specific sensor control
+     * @param[in] control - Control name
+     * @param[out] value - Control value
+     * @return Status
+     */
+    virtual Status getControl(const std::string &control,
+                              std::string &value) const = 0;
 
     /**
      * @brief Get a structure that contains information about the instance of
@@ -149,6 +237,13 @@ class DepthSensorInterface {
      * @return Status
      */
     virtual aditof::Status getHandle(void **handle) = 0;
+
+    /**
+     * @brief Get the name of the sensor
+     * @param[out] name - the string in which the name is stored
+     * @return Status
+     */
+    virtual aditof::Status getName(std::string &name) const = 0;
 };
 
 } // namespace aditof

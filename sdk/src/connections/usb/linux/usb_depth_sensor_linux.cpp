@@ -67,7 +67,8 @@ struct UsbDepthSensor::ImplData {
     std::unordered_map<std::string, CalibrationData> calibration_cache;
 };
 
-UsbDepthSensor::UsbDepthSensor(const std::string &driverPath)
+UsbDepthSensor::UsbDepthSensor(const std::string &name,
+                               const std::string &driverPath)
     : m_driverPath(driverPath), m_implData(new UsbDepthSensor::ImplData) {
     m_implData->fd = 0;
     m_implData->opened = false;
@@ -75,6 +76,7 @@ UsbDepthSensor::UsbDepthSensor(const std::string &driverPath)
     m_implData->buffers = nullptr;
     m_implData->buffersCount = 0;
     m_sensorDetails.connectionType = aditof::ConnectionType::USB;
+    m_sensorName = name;
 }
 
 UsbDepthSensor::~UsbDepthSensor() {
@@ -257,18 +259,40 @@ UsbDepthSensor::setFrameType(const aditof::DepthSensorFrameType &type) {
         return Status::GENERIC_ERROR;
     }
 
-    // Buggy driver paranoia.
-    unsigned int min;
+    bool found = false;
+    struct v4l2_fmtdesc fmtdesc;
+    memset(&fmtdesc, 0, sizeof(fmtdesc));
+    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    while (UsbLinuxUtils::xioctl(m_implData->fd, VIDIOC_ENUM_FMT, &fmtdesc) ==
+           0) {
+        struct v4l2_frmsizeenum frmenum;
+        memset(&frmenum, 0, sizeof frmenum);
+        frmenum.pixel_format = fmtdesc.pixelformat;
+        while (UsbLinuxUtils::xioctl(m_implData->fd, VIDIOC_ENUM_FRAMESIZES,
+                                     &frmenum) == 0) {
+            if ((frmenum.discrete.width == type.width) &&
+                (frmenum.discrete.height == type.height)) {
+                found = true;
+                break;
+            }
+            frmenum.index++;
+        }
+        if (found)
+            break;
+        else
+            fmtdesc.index++;
+    }
+
+    if (!found) {
+        LOG(WARNING) << "UVC does not support the requested format "
+                     << "errno: " << errno << " error: " << strerror(errno);
+        return Status::GENERIC_ERROR;
+    }
 
     m_implData->fmt.fmt.pix.width = type.width;
     m_implData->fmt.fmt.pix.height = type.height;
-
-    min = m_implData->fmt.fmt.pix.width * 2;
-    if (m_implData->fmt.fmt.pix.bytesperline < min)
-        m_implData->fmt.fmt.pix.bytesperline = min;
-    min = m_implData->fmt.fmt.pix.bytesperline * m_implData->fmt.fmt.pix.height;
-    if (m_implData->fmt.fmt.pix.sizeimage < min)
-        m_implData->fmt.fmt.pix.sizeimage = min;
+    m_implData->fmt.fmt.pix.pixelformat = fmtdesc.pixelformat;
+    m_implData->fmt.fmt.pix.field = V4L2_FIELD_ANY;
 
     if (-1 ==
         UsbLinuxUtils::xioctl(m_implData->fd, VIDIOC_S_FMT, &m_implData->fmt)) {
@@ -276,7 +300,6 @@ UsbDepthSensor::setFrameType(const aditof::DepthSensorFrameType &type) {
                      << strerror(errno) << ")";
         return Status::GENERIC_ERROR;
     }
-
 
     CLEAR(req);
     req.count = 4;
@@ -446,7 +469,7 @@ aditof::Status UsbDepthSensor::getFrame(uint16_t *buffer) {
 
     // Timeout : Ensure this compensates for max delays added for programming
     // cycle defined in 'Device::program'
-    tv.tv_sec = 2;
+    tv.tv_sec = 5;
     tv.tv_usec = 0;
 
     r = select(m_implData->fd + 1, &fds, nullptr, nullptr, &tv);
@@ -607,6 +630,145 @@ aditof::Status UsbDepthSensor::writeRegisters(const uint16_t *address,
 }
 
 aditof::Status
+UsbDepthSensor::getAvailableControls(std::vector<std::string> &controls) const {
+    using namespace aditof;
+    Status status = Status::OK;
+
+    // Construct request message
+    usb_payload::ClientRequest requestMsg;
+    requestMsg.set_func_name(usb_payload::FunctionName::GET_AVAILABLE_CONTROLS);
+
+    // Send request
+    std::string requestStr;
+    requestMsg.SerializeToString(&requestStr);
+    status = UsbLinuxUtils::uvcExUnitSendRequest(m_implData->fd, requestStr);
+    if (status != aditof::Status::OK) {
+        LOG(ERROR) << "Request to get available controls failed";
+        return status;
+    }
+
+    // Read UVC gadget response
+    std::string responseStr;
+    status = UsbLinuxUtils::uvcExUnitGetResponse(m_implData->fd, responseStr);
+    if (status != aditof::Status::OK) {
+        LOG(ERROR) << "Failed to get response of the request to get controls";
+        return status;
+    }
+    usb_payload::ServerResponse responseMsg;
+    bool parsed = responseMsg.ParseFromString(responseStr);
+    if (!parsed) {
+        LOG(ERROR)
+            << "Failed to deserialize string containing UVC gadget response";
+        return aditof::Status::INVALID_ARGUMENT;
+    }
+
+    if (responseMsg.status() != usb_payload::Status::OK) {
+        LOG(ERROR) << "Get available controls operation failed on UVC gadget";
+        return static_cast<aditof::Status>(responseMsg.status());
+    }
+
+    controls.clear();
+
+    for (int i = 0; i < responseMsg.strings_payload_size(); i++) {
+        std::string controlName = responseMsg.strings_payload(i);
+        controls.push_back(controlName);
+    }
+
+    return Status::OK;
+}
+
+aditof::Status UsbDepthSensor::setControl(const std::string &control,
+                                          const std::string &value) {
+    using namespace aditof;
+    Status status = Status::OK;
+
+    // Construct request message
+    usb_payload::ClientRequest requestMsg;
+    requestMsg.set_func_name(usb_payload::FunctionName::SET_CONTROL);
+    requestMsg.add_func_strings_param(control);
+    requestMsg.add_func_strings_param(value);
+
+    // Send request
+    std::string requestStr;
+    requestMsg.SerializeToString(&requestStr);
+    status = UsbLinuxUtils::uvcExUnitSendRequest(m_implData->fd, requestStr);
+    if (status != aditof::Status::OK) {
+        LOG(ERROR) << "Request to set control failed: " << control;
+        return status;
+    }
+
+    // Read UVC gadget response
+    std::string responseStr;
+    status = UsbLinuxUtils::uvcExUnitGetResponse(m_implData->fd, responseStr);
+    if (status != aditof::Status::OK) {
+        LOG(ERROR) << "Failed to get response of the request to set control: "
+                   << control;
+        return status;
+    }
+    usb_payload::ServerResponse responseMsg;
+    bool parsed = responseMsg.ParseFromString(responseStr);
+    if (!parsed) {
+        LOG(ERROR)
+            << "Failed to deserialize string containing UVC gadget response";
+        return aditof::Status::INVALID_ARGUMENT;
+    }
+
+    if (responseMsg.status() != usb_payload::Status::OK) {
+        LOG(ERROR) << "Set control:" << control
+                   << " operation failed on UVC gadget";
+        return static_cast<aditof::Status>(responseMsg.status());
+    }
+
+    return Status::OK;
+}
+
+aditof::Status UsbDepthSensor::getControl(const std::string &control,
+                                          std::string &value) const {
+    using namespace aditof;
+    Status status = Status::OK;
+
+    // Construct request message
+    usb_payload::ClientRequest requestMsg;
+    requestMsg.set_func_name(usb_payload::FunctionName::GET_CONTROL);
+    requestMsg.add_func_strings_param(control);
+
+    // Send request
+    std::string requestStr;
+    requestMsg.SerializeToString(&requestStr);
+    status = UsbLinuxUtils::uvcExUnitSendRequest(m_implData->fd, requestStr);
+    if (status != aditof::Status::OK) {
+        LOG(ERROR) << "Request to get control: " << control << " failed";
+        return status;
+    }
+
+    // Read UVC gadget response
+    std::string responseStr;
+    status = UsbLinuxUtils::uvcExUnitGetResponse(m_implData->fd, responseStr);
+    if (status != aditof::Status::OK) {
+        LOG(ERROR) << "Failed to get response of the request to get control: "
+                   << control;
+        return status;
+    }
+    usb_payload::ServerResponse responseMsg;
+    bool parsed = responseMsg.ParseFromString(responseStr);
+    if (!parsed) {
+        LOG(ERROR)
+            << "Failed to deserialize string containing UVC gadget response";
+        return aditof::Status::INVALID_ARGUMENT;
+    }
+
+    if (responseMsg.status() != usb_payload::Status::OK) {
+        LOG(ERROR) << "Get control: " << control
+                   << " operation failed on UVC gadget";
+        return static_cast<aditof::Status>(responseMsg.status());
+    }
+
+    value = responseMsg.strings_payload(0);
+
+    return Status::OK;
+}
+
+aditof::Status
 UsbDepthSensor::getDetails(aditof::SensorDetails &details) const {
     details = m_sensorDetails;
     return aditof::Status::OK;
@@ -621,4 +783,39 @@ aditof::Status UsbDepthSensor::getHandle(void **handle) {
         LOG(ERROR) << "Won't return the handle. Device hasn't been opened yet.";
         return aditof::Status::UNAVAILABLE;
     }
+}
+
+aditof::Status UsbDepthSensor::getName(std::string &name) const {
+    name = m_sensorName;
+    return aditof::Status::OK;
+}
+
+aditof::Status UsbDepthSensor::adsd3500_read_cmd(uint16_t cmd, uint16_t *data) {
+    return aditof::Status::OK;
+}
+
+aditof::Status UsbDepthSensor::adsd3500_write_cmd(uint16_t cmd, uint16_t data) {
+    return aditof::Status::OK;
+}
+
+aditof::Status UsbDepthSensor::adsd3500_read_payload_cmd(uint32_t cmd,
+                                                         uint8_t *readback_data,
+                                                         uint16_t payload_len) {
+    return aditof::Status::OK;
+}
+
+aditof::Status UsbDepthSensor::adsd3500_read_payload(uint8_t *payload,
+                                                     uint16_t payload_len) {
+    return aditof::Status::OK;
+}
+
+aditof::Status
+UsbDepthSensor::adsd3500_write_payload_cmd(uint32_t cmd, uint8_t *payload,
+                                           uint16_t payload_len) {
+    return aditof::Status::OK;
+}
+
+aditof::Status UsbDepthSensor::adsd3500_write_payload(uint8_t *payload,
+                                                      uint16_t payload_len) {
+    return aditof::Status::OK;
 }

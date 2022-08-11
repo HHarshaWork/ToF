@@ -56,6 +56,9 @@ Status NetworkSensorEnumerator::searchSensors() {
 
     if (net->ServerConnect(m_ip) != 0) {
         LOG(WARNING) << "Server Connect Failed";
+        net.reset(nullptr);
+        sensorCount--;
+        assert(sensorCount >= 0);
         return Status::UNREACHABLE;
     }
 
@@ -81,6 +84,8 @@ Status NetworkSensorEnumerator::searchSensors() {
     const payload::ServerResponse &msg = net->recv_buff[sensorIndex];
     const payload::SensorsInfo &pbSensorsInfo = msg.sensors_info();
 
+    m_imageSensorsInfo = pbSensorsInfo.image_sensors().name();
+
     for (int i = 0; i < pbSensorsInfo.storages().size(); ++i) {
         std::string name = pbSensorsInfo.storages(i).name();
         unsigned int id = pbSensorsInfo.storages(i).id();
@@ -95,6 +100,10 @@ Status NetworkSensorEnumerator::searchSensors() {
             std::pair<std::string, unsigned int>(name, id));
     }
 
+    m_kernelVersion = msg.card_image_version().kernelversion();
+    m_sdVersion = msg.card_image_version().sdversion();
+    m_uBootVersion = msg.card_image_version().ubootversion();
+
     status = static_cast<Status>(net->recv_buff[sensorIndex].status());
 
     return status;
@@ -105,7 +114,8 @@ Status NetworkSensorEnumerator::getDepthSensors(
 
     depthSensors.clear();
 
-    auto sensor = std::make_shared<NetworkDepthSensor>(m_ip);
+    auto sensor =
+        std::make_shared<NetworkDepthSensor>(m_imageSensorsInfo, m_ip);
     depthSensors.emplace_back(sensor);
 
     return Status::OK;
@@ -138,4 +148,22 @@ Status NetworkSensorEnumerator::getTemperatureSensors(
     }
 
     return Status::OK;
+}
+
+aditof::Status
+NetworkSensorEnumerator::getUbootVersion(std::string &uBootVersion) const {
+    uBootVersion = m_uBootVersion;
+    return aditof::Status::OK;
+}
+
+aditof::Status
+NetworkSensorEnumerator::getKernelVersion(std::string &kernelVersion) const {
+    kernelVersion = m_kernelVersion;
+    return aditof::Status::OK;
+}
+
+aditof::Status
+NetworkSensorEnumerator::getSdVersion(std::string &sdVersion) const {
+    sdVersion = m_sdVersion;
+    return aditof::Status::OK;
 }

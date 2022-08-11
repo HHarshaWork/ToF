@@ -48,8 +48,9 @@ using namespace aditof;
 namespace local {
 
 aditof::Status findDevicePathsAtVideo(const std::string &video,
-                                      std::string &dev_name,
-                                      std::string &subdev_name) {
+                                      std::string &dev_path,
+                                      std::string &subdev_path,
+                                      std::string &device_name) {
     using namespace aditof;
     using namespace std;
 
@@ -80,20 +81,26 @@ aditof::Status findDevicePathsAtVideo(const std::string &video,
 
     size_t pos = str.find("mxc_isi.0.capture");
     if (pos != string::npos) {
-        dev_name = str.substr(pos + strlen("mxc_isi.0.capture") + 2, strlen("/dev/mediaX"));
-    }
-    else {
+        dev_path = str.substr(pos + strlen("mxc_isi.0.capture") + 2,
+                              strlen("/dev/mediaX"));
+    } else {
         return Status::GENERIC_ERROR;
-    } 
-
-    pos = str.find("addicmos spi0.0");
-    if (pos != string::npos) {
-        subdev_name = str.substr(pos + strlen("addicmos spi0.0") + 2, strlen("/dev/v4l-subdevX"));
     }
-    else {
-        return Status::GENERIC_ERROR;
-    } 
 
+    if (str.find("adsd3500") != string::npos) {
+        device_name = "adsd3500";
+        pos = str.find("adsd3500");
+        subdev_path = str.substr(pos + strlen("adsd3500") + 9,
+                                 strlen("/dev/v4l-subdevX"));
+
+    } else if (str.find("adsd3100") != string::npos) {
+        device_name = "addicmos";
+        pos = str.find("adsd3100");
+        subdev_path = str.substr(pos + strlen("adsd3100") + 9,
+                                 strlen("/dev/v4l-subdevX"));
+    } else {
+        return Status::GENERIC_ERROR;
+    }
     return Status::OK;
 }
 
@@ -108,6 +115,7 @@ Status TargetSensorEnumerator::searchSensors() {
     std::vector<std::string> videoPaths;
     const std::string videoDirPath("/dev/");
     const std::string videoBaseName("media");
+    std::string deviceName;
 
     DIR *dirp = opendir(videoDirPath.c_str());
     struct dirent *dp;
@@ -127,7 +135,8 @@ Status TargetSensorEnumerator::searchSensors() {
         std::string devPath;
         std::string subdevPath;
 
-        status = local::findDevicePathsAtVideo(video, devPath, subdevPath);
+        status = local::findDevicePathsAtVideo(video, devPath, subdevPath,
+                                               deviceName);
         if (status != Status::OK) {
             LOG(WARNING) << "failed to find device paths at video: " << video;
             return status;
@@ -136,16 +145,23 @@ Status TargetSensorEnumerator::searchSensors() {
         if (devPath.empty() || subdevPath.empty()) {
             continue;
         }
+
         DLOG(INFO) << "Considering: " << video << " an eligible TOF camera";
 
         SensorInfo sInfo;
-        sInfo.sensorType = SensorType::SENSOR_ADSD3100;
+
+        if (deviceName == "adsd3500") {
+            sInfo.sensorType = SensorType::SENSOR_ADSD3500;
+        } else if (deviceName == "addicmos") {
+            sInfo.sensorType = SensorType::SENSOR_ADSD3100;
+        }
+
         sInfo.driverPath = devPath;
         sInfo.subDevPath = subdevPath;
         sInfo.captureDev = CAPTURE_DEVICE_NAME;
         m_sensorsInfo.emplace_back(sInfo);
     }
-    
+
     // Check if EEPROM is available
     struct stat st;
     if (stat(EEPROM_DEV_PATH, &st) == 0) {
@@ -157,4 +173,3 @@ Status TargetSensorEnumerator::searchSensors() {
 
     return status;
 }
-

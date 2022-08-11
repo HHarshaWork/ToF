@@ -86,7 +86,7 @@ Status UsbSensorEnumerator::searchSensors() {
             continue;
         }
 
-        int fd = open(driverPath.c_str(), O_RDWR | O_NONBLOCK, 0);
+        fd = open(driverPath.c_str(), O_RDWR | O_NONBLOCK, 0);
         if (-1 == fd) {
             LOG(WARNING) << "Cannot open '" << driverPath
                          << "' error: " << errno << "(" << strerror(errno)
@@ -100,8 +100,6 @@ Status UsbSensorEnumerator::searchSensors() {
                 LOG(WARNING) << driverPath << " is not V4L2 device";
                 close(fd);
                 continue;
-            } else {
-                LOG(WARNING) << "VIDIOC_QUERYCAP";
             }
         }
 
@@ -114,11 +112,7 @@ Status UsbSensorEnumerator::searchSensors() {
             continue;
         }
 
-#if defined(ITOF)
         std::string devName("ADI CMOS TOF UVC Gadget");
-#else
-        std::string devName("ADI TOF DEPTH SENSOR");
-#endif
 
         if (strncmp(reinterpret_cast<const char *>(cap.card), devName.c_str(),
                     devName.length()) != 0) {
@@ -185,6 +179,9 @@ Status UsbSensorEnumerator::searchSensors() {
 
         // If request and response went well, extract data from response
         m_sensorsInfo.emplace_back(sInfo);
+        m_sensorName = responseMsg.sensors_info().image_sensors().name();
+
+        m_sensorName = responseMsg.sensors_info().image_sensors().name();
 
         m_storagesInfo.clear();
         for (int i = 0; i < responseMsg.sensors_info().storages_size(); ++i) {
@@ -200,6 +197,10 @@ Status UsbSensorEnumerator::searchSensors() {
             m_storagesInfo.emplace_back(
                 std::make_pair(tempSensor.name(), tempSensor.id()));
         }
+
+        m_kernelVersion = responseMsg.card_image_version().kernelversion();
+        m_sdVersion = responseMsg.card_image_version().sdversion();
+        m_uBootVersion = responseMsg.card_image_version().ubootversion();
     }
 
     closedir(d);
@@ -213,7 +214,8 @@ Status UsbSensorEnumerator::getDepthSensors(
     depthSensors.clear();
 
     for (const auto &sInfo : m_sensorsInfo) {
-        auto sensor = std::make_shared<UsbDepthSensor>(sInfo.driverPath);
+        auto sensor =
+            std::make_shared<UsbDepthSensor>(m_sensorName, sInfo.driverPath);
         depthSensors.emplace_back(sensor);
     }
 
@@ -247,4 +249,21 @@ Status UsbSensorEnumerator::getTemperatureSensors(
     }
 
     return Status::OK;
+}
+
+aditof::Status
+UsbSensorEnumerator::getUbootVersion(std::string &uBootVersion) const {
+    uBootVersion = m_uBootVersion;
+    return aditof::Status::OK;
+}
+
+aditof::Status
+UsbSensorEnumerator::getKernelVersion(std::string &kernelVersion) const {
+    kernelVersion = m_kernelVersion;
+    return aditof::Status::OK;
+}
+
+aditof::Status UsbSensorEnumerator::getSdVersion(std::string &sdVersion) const {
+    sdVersion = m_sdVersion;
+    return aditof::Status::OK;
 }

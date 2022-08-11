@@ -42,7 +42,9 @@
                               "." ADITOF_API_VERSION_PATCH)
 
 namespace aditof {
-const std::string getApiVersion() { return std::string(ADITOF_API_VERSION); }
+    static inline const std::string getApiVersion() { return std::string(ADITOF_API_VERSION); }
+    static inline const std::string getBranchVersion() { return std::string(ADITOFSDK_GIT_BRANCH); }
+    static inline const std::string getCommitVersion() { return std::string(ADITOFSDK_GIT_COMMIT); }
 } // namespace aditof
 
 #endif // VERSION_H

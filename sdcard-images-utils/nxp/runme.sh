@@ -3,7 +3,7 @@ set -e
 
 ### General setup
 NXP_REL=rel_imx_5.4.70_2.3.0
-KERNEL_NXP_REL=lf-5.10.y-1.0.0
+KERNEL_NXP_REL=lf-5.10.72-2.2.0
 #rel_imx_5.4.70_2.3.0
 UBOOT_NXP_REL=imx_v2020.04_5.4.70_2.3.0
 #rel_imx_5.4.24_2.1.0
@@ -54,8 +54,8 @@ fi
 # Build linux
 echo "*** Building Linux kernel"
 cd $ROOTDIR/build/linux-imx
-make imx_v8_defconfig
-./scripts/kconfig/merge_config.sh .config $ROOTDIR/configs/kernel.extra
+cp $ROOTDIR/configs/adi_imx_v8_defconfig arch/arm64/configs/
+make adi_imx_v8_defconfig
 make -j32 Image dtbs modules
 if [[ -d modules ]]; then
 	rm -R modules
@@ -126,14 +126,26 @@ echo "sd_img_ver	$IMG" > $ROOTDIR/images/sw-versions
 echo "kernel		$KERNEL_NXP_REL" >> $ROOTDIR/images/sw-versions
 echo "u-boot		$UBOOT_NXP_REL" >> $ROOTDIR/images/sw-versions
 
-echo "label linux" > $ROOTDIR/images/extlinux.conf
+echo "MENU TITLE ADITOF boot options" > $ROOTDIR/images/extlinux.conf
+echo "TIMEOUT 10" >> $ROOTDIR/images/extlinux.conf
+echo "DEFAULT ADSD3500" >> $ROOTDIR/images/extlinux.conf
+echo "label ADSD3100" >> $ROOTDIR/images/extlinux.conf
 echo "        linux ../Image" >> $ROOTDIR/images/extlinux.conf
 echo "        fdt ../imx8mp-adi-tof-noreg.dtb" >> $ROOTDIR/images/extlinux.conf
 if [[ $BUILD_TYPE == "buildroot" ]]; then
 	echo "        initrd ../rootfs.cpio.uboot" >> $ROOTDIR/images/extlinux.conf
 else
-	echo "        append root=/dev/mmcblk1p2 rootwait rw" >> $ROOTDIR/images/extlinux.conf
+	echo "        append root=/dev/mmcblk1p2 rootwait ro init=/usr/lib/init_resize.sh" >> $ROOTDIR/images/extlinux.conf
 fi
+echo "label ADSD3500" >> $ROOTDIR/images/extlinux.conf
+echo "        linux ../Image" >> $ROOTDIR/images/extlinux.conf
+echo "        fdt ../imx8mp-adi-tof-adsd3500.dtb" >> $ROOTDIR/images/extlinux.conf
+if [[ $BUILD_TYPE == "buildroot" ]]; then
+	echo "        initrd ../rootfs.cpio.uboot" >> $ROOTDIR/images/extlinux.conf
+else
+	echo "        append root=/dev/mmcblk1p2 rootwait ro init=/usr/lib/init_resize.sh" >> $ROOTDIR/images/extlinux.conf
+fi
+
 mmd -i tmp/part1.fat32 ::/extlinux
 mcopy -i tmp/part1.fat32 $ROOTDIR/images/sw-versions ::/sw-versions
 mcopy -i tmp/part1.fat32 $ROOTDIR/images/extlinux.conf ::/extlinux/extlinux.conf

@@ -52,39 +52,42 @@ buildCameras(std::unique_ptr<SensorEnumeratorInterface> enumerator) {
     std::vector<std::shared_ptr<DepthSensorInterface>> depthSensors;
     std::vector<std::shared_ptr<StorageInterface>> storages;
     std::vector<std::shared_ptr<TemperatureSensorInterface>> temperatureSensors;
+    std::string uboot;
+    std::string kernel;
+    std::string sd_ver;
 
     enumerator->getDepthSensors(depthSensors);
     enumerator->getStorages(storages);
     enumerator->getTemperatureSensors(temperatureSensors);
 
-    for (const auto &dSensor : depthSensors) {
+    enumerator->getUbootVersion(uboot);
+    enumerator->getKernelVersion(kernel);
+    enumerator->getSdVersion(sd_ver);
 
+    for (const auto &dSensor : depthSensors) {
         std::shared_ptr<Camera> camera = std::make_shared<CameraItof>(
-            dSensor, storages, temperatureSensors);
+            dSensor, storages, temperatureSensors, uboot, kernel, sd_ver);
         cameras.emplace_back(camera);
     }
 
     return cameras;
 }
 
-SystemImpl::SystemImpl() {
-    static bool sdkRevisionLogged = false;
-    if (!sdkRevisionLogged) {
-        LOG(INFO) << "SDK version: " << aditof::getApiVersion()
-                  << " | branch: " << ADITOFSDK_GIT_BRANCH
-                  << " | commit: " << ADITOFSDK_GIT_COMMIT;
-        sdkRevisionLogged = true;
-#if HAS_NETWORK
-        LOG(INFO) << "SDK built with websockets version:"
-                  << LWS_LIBRARY_VERSION;
-#endif
-    }
-}
+SystemImpl::SystemImpl() {}
 
 SystemImpl::~SystemImpl() = default;
 
 Status SystemImpl::getCameraList(
     std::vector<std::shared_ptr<Camera>> &cameraList) const {
+
+#if HAS_NETWORK
+    static bool logged = false;
+    if (!logged) {
+        LOG(INFO) << "SDK built with websockets version:"
+                  << LWS_LIBRARY_VERSION;
+        logged = true;
+    }
+#endif
 
     cameraList.clear();
     std::unique_ptr<SensorEnumeratorInterface> sensorEnumerator;
@@ -96,8 +99,7 @@ Status SystemImpl::getCameraList(
         return Status::GENERIC_ERROR;
     }
 #elif defined(NXP)
-    sensorEnumerator =
-        SensorEnumeratorFactory::buildTargetSensorEnumerator();
+    sensorEnumerator = SensorEnumeratorFactory::buildTargetSensorEnumerator();
     if (!sensorEnumerator) {
         LOG(ERROR) << "Could not create TargetSensorEnumerator";
         return Status::GENERIC_ERROR;
@@ -110,8 +112,10 @@ Status SystemImpl::getCameraList(
     }
 #endif
 
-    sensorEnumerator->searchSensors();
-    cameraList = buildCameras(std::move(sensorEnumerator));
+    Status status = sensorEnumerator->searchSensors();
+    if (status == Status::OK) {
+        cameraList = buildCameras(std::move(sensorEnumerator));
+    }
 
     return Status::OK;
 }
@@ -119,6 +123,15 @@ Status SystemImpl::getCameraList(
 Status
 SystemImpl::getCameraListAtIp(std::vector<std::shared_ptr<Camera>> &cameraList,
                               const std::string &ip) const {
+
+#if HAS_NETWORK
+    static bool logged = false;
+    if (!logged) {
+        LOG(INFO) << "SDK built with websockets version:"
+                  << LWS_LIBRARY_VERSION;
+        logged = true;
+    }
+#endif
 
     cameraList.clear();
 

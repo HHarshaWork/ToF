@@ -1,7 +1,7 @@
-From d8fd6d4e1621f1ca39ef82536a155581695a284f Mon Sep 17 00:00:00 2001
+From ddff7b0a77c668af73e65c72c303e66b195fd7cb Mon Sep 17 00:00:00 2001
 From: TalPilo <tal.pilo@solid-run.com>
 Date: Wed, 30 Sep 2020 11:38:40 +0300
-Subject: [PATCH 2/3] Add imx8mp solidrun device tree to u-boot
+Subject: [PATCH 02/11] Add imx8mp solidrun device tree to u-boot
 
 Signed-off-by: TalPilo <tal.pilo@solid-run.com>
 ---
@@ -587,5 +587,5 @@ index 0000000000..44726378e4
 +	};
 +};
 -- 
-2.25.1
+2.17.1
 

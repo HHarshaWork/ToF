@@ -31,7 +31,11 @@
  */
 #include "connections/target/target_sensor_enumerator.h"
 #include "connections/target/adsd3100_sensor.h"
+#include "connections/target/adsd3500_sensor.h"
 #include "connections/target/eeprom.h"
+#include <algorithm>
+#include <fstream>
+#include <glog/logging.h>
 
 using namespace aditof;
 
@@ -42,6 +46,12 @@ Status TargetSensorEnumerator::getDepthSensors(
 
     for (const auto &sInfo : m_sensorsInfo) {
         switch (sInfo.sensorType) {
+        case SensorType::SENSOR_ADSD3500: {
+            auto sensor = std::make_shared<Adsd3500Sensor>(
+                sInfo.driverPath, sInfo.subDevPath, sInfo.captureDev);
+            depthSensors.emplace_back(sensor);
+            break;
+        }
         case SensorType::SENSOR_ADSD3100: {
             auto sensor = std::make_shared<Adsd3100Sensor>(
                 sInfo.driverPath, sInfo.subDevPath, sInfo.captureDev);
@@ -83,4 +93,66 @@ Status TargetSensorEnumerator::getTemperatureSensors(
     }
 
     return Status::OK;
+}
+
+std::string TargetSensorEnumerator::getVersionOfComponent(
+    const std::string &component) const {
+    std::string versionsFilePath = "/boot/sw-versions";
+    std::ifstream fid;
+    std::string line;
+    std::string version;
+
+    fid.open(versionsFilePath);
+    if (fid.is_open()) {
+        while (fid) {
+            std::getline(fid, line);
+            if (!line.compare(0, component.length(), component)) {
+                version = line.substr(component.length());
+                version.erase(std::remove(version.begin(), version.end(), '\t'),
+                              version.end());
+                break;
+            }
+        }
+        fid.close();
+    } else {
+        LOG(ERROR) << "Failed to open file" << versionsFilePath;
+    }
+
+    return version;
+}
+
+aditof::Status
+TargetSensorEnumerator::getUbootVersion(std::string &uBootVersion) const {
+
+    uBootVersion = getVersionOfComponent("u-boot");
+    if (uBootVersion.empty()) {
+        LOG(ERROR) << "Could not find version for u-boot";
+        return aditof::Status::INVALID_ARGUMENT;
+    }
+
+    return aditof::Status::OK;
+}
+
+aditof::Status
+TargetSensorEnumerator::getKernelVersion(std::string &kernelVersion) const {
+
+    kernelVersion = getVersionOfComponent("kernel");
+    if (kernelVersion.empty()) {
+        LOG(ERROR) << "Could not find version for u-boot";
+        return aditof::Status::INVALID_ARGUMENT;
+    }
+
+    return aditof::Status::OK;
+}
+
+aditof::Status
+TargetSensorEnumerator::getSdVersion(std::string &sdVersion) const {
+
+    sdVersion = getVersionOfComponent("sd_img_ver");
+    if (sdVersion.empty()) {
+        LOG(ERROR) << "Could not find version for u-boot";
+        return aditof::Status::INVALID_ARGUMENT;
+    }
+
+    return aditof::Status::OK;
 }

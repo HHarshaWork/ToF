@@ -60,13 +60,13 @@ function setup_config() {
   # default configs
   TARGET_ARCH=arm64
   DISTRO_MIRROR=${DISTRO_MIRROR:='http://ports.ubuntu.com/ubuntu-ports'}
-  DISTRO_CODE=bionic
+  DISTRO_CODE=focal
   USERNAME=analog
   PASSWORD=analog
   TZ_AREA=Etc
   TZ_CITY=UTC
   LOCALE_LANG=en_US.UTF-8
-  ADD_LIST='git build-essential gcc autoconf nano vim'
+  ADD_LIST='git build-essential gcc autoconf nano vim parted'
   ADD_LIST_ST_3='i2c-tools v4l-utils rfkill wpasupplicant libtool libconfig-dev avahi-daemon htpdate openssh-server bc'
 
   # output example of the config file
@@ -227,7 +227,9 @@ apt install -y ${ADD_LIST_ST_3}
 #systemd configs
 systemctl enable systemd-networkd.service
 systemctl enable avahi-daemon.service
-systemctl enable uvc-gadget.service
+systemctl enable usb-gadget.service
+systemctl enable network-gadget.path
+systemctl enable uvc-gadget.path
 
 #sdk install
 pushd /home/${USERNAME}
@@ -256,7 +258,7 @@ EOF
   sudo chroot ${ROOTFS_TMP} /tmp/stage3.sh
   sudo rm -f ${ROOTFS_TMP}/tmp/stage3.sh
   
-  sudo tar -xvf ${SCRIPT_DIR}/build/linux-imx/modules.tar -C ${ROOTFS_TMP}/
+  sudo tar -xvf ${SCRIPT_DIR}/build/linux-imx/modules.tar -C ${ROOTFS_TMP}/usr/
 
   # I don't know who creates empty .cache which is owned by root, remove it.
   sudo rm -rf ${ROOTFS_TMP}/home/${USERNAME}/.cache
