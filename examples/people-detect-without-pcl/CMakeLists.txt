@@ -82,7 +82,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 # Copying necessary dlls from SDK and the necessary config files
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBTOFI_LIBDIR_PATH} $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${LIBTOFI_LIBDIR_PATH}/tofi_compute.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
+	COMMAND ${CMAKE_COMMAND} -E copy ${LIBTOFI_LIBDIR_PATH}/tofi_config.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
 	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../../build/sdk/Release/aditof.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
 	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/ObjectDetector/ObjectDetector.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.
 	COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/Lib/PeopleDetector/PeopleDetection.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>/.	
