@@ -1,1 +1,1 @@
-This folder contains the DeepLearningSDK DLL
+This folder contains the ObjectDetector DLL
