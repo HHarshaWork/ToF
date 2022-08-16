@@ -46,11 +46,11 @@ Usage:
 			-o  <filename>		Name of the output file if needed to be stored
 			-n  <integer>		Number of frames the application needs to process. [default: -1]
 			-th <integer>		Number of seconds to wait before tracking the person once in frame. [default: 30]
-			-d  <float>			Distance threshold(in cm) beyond which to consider the people as non-static. [default: 30]
-			-cm <0|1>			Capture Mode. The supported capture modes are MP (1024x1024, option 0) and QMP (512x512, option 1)
-			-dm <0|1|2>			Display Mode. The supported display modes are IR (option 0), depth heatmap (option 1) and silhouette (option 2)
+			-d  <float>		Distance threshold(in cm) beyond which to consider the people as non-static. [default: 30]
+			-cm <0|1>		Capture Mode. The supported capture modes are MP (1024x1024, option 0) and QMP (512x512, option 1)
+			-dm <0|1|2>		Display Mode. The supported display modes are IR (option 0), depth heatmap (option 1) and silhouette (option 2)
 			-off <float>		Height offset(in cm) to be added to detections to compensate for height difference(if any) between camera and audio controller.
 			-sp <port name>		Serial COM port to transmit head locations to. [default: COM7]
-			-em <0|1>			Enable/disable metadata output. If set to 1 the detections will be logged to a csv file. [default: 0]
+			-em <0|1>		Enable/disable metadata output. If set to 1 the detections will be logged to a csv file. [default: 0]
 			-md <filename>		Name of metadata file to be saved if metadata output enabled. Has no effect if metadata output is disabled
 ```
