@@ -12,7 +12,7 @@ People Detect Application is a program that uses the APIs exposed in the deeplea
 
 Before attempting to build this project, 
 * Ensure the aditof library is built in **Release** mode.
-* Confirm installation of the PeopleTracker libraries with installation path set to **\<local path to ToF repo\>/examples/people-detect-without-pcl**
+* Confirm installation of the [PeopleTracker](http://swdownloads.analog.com/cse/aditof/aware3d/3DSensor_People_Tracker-Rel1.1.0.exe) libraries with installation path set to **\<local path to ToF repo\>/examples/people-detect-without-pcl**
 	
 ### Build in Visual Studio
 
