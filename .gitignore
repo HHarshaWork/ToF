@@ -6,7 +6,8 @@ examples/people-detect/Lib/
 examples/people-detect/Dependencies/
 examples/people-detect/Application/Bin
 examples/people-detect/Application/Coverity
-
+examples/people-detect/PeopleDetection
+examples/people-detect/ObjectDetection
 
 *deps/
 *.temp/
