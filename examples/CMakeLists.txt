@@ -6,12 +6,12 @@ add_subdirectory(data_collect)
 if (NOT NXP)
     ################Setting up opencv and tensorflow for example code ########################
     set(OPENCV_URL "https://github.com/opencv/opencv/releases/download/4.5.3/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip")
-    set(OPENCV_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip")
-    set(OPENCV_EXTRACTED_FILE "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/opencv/")
+    set(OPENCV_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/examples/people-detect/Dependencies/opencv-4.5.3-openvino-dldt-2021.4-vc16-avx2.zip")
+    set(OPENCV_EXTRACTED_FILE "${CMAKE_SOURCE_DIR}/examples/people-detect/Dependencies/opencv/")
 
     set(TF_URL "https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.15.0.zip")
-    set(TF_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/libtensorflow-cpu-windows-x86_64-1.15.0.zip")
-    set(TF_EXTRACTED_FILE "${CMAKE_SOURCE_DIR}/examples/people-detect-without-pcl/Dependencies/tensorflow/")
+    set(TF_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/examples/people-detect/Dependencies/libtensorflow-cpu-windows-x86_64-1.15.0.zip")
+    set(TF_EXTRACTED_FILE "${CMAKE_SOURCE_DIR}/examples/people-detect/Dependencies/tensorflow/")
 
     if (NOT EXISTS "${OPENCV_DOWNLOAD_PATH}")
         MESSAGE( STATUS "Downloading OpenCV")
@@ -36,7 +36,7 @@ if (NOT NXP)
     endif()
     ################Setting up opencv and tensorflow for example code########################
     add_subdirectory(tof-viewer)
-    add_subdirectory(people-detect-without-pcl)
+    add_subdirectory(people-detect)
 endif()
 
 if (WITH_NETWORK)
